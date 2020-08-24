@@ -3,9 +3,9 @@
  - [ ] retrain model to use anime characters
    - [ ] look for anime (and anime hair) dataset
    - [ ] look into weights
- - [ ] make into discord bot
+ - [x] make into discord bot
  - [ ] request permission for distribution
  - [ ] image processing
-   - [ ] more rgb colors (find variaable equation)
+   - [ ] more rgb colors (find variable equation)
    - [ ] apply gradient
    

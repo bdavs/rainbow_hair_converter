@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 def load_model():
 
     model = MobileNetV2_unet(None).to(torch.device("cpu"))
-    state_dict = torch.load('/face-seg/checkpoints/model.pt', map_location='cpu')
+    state_dict = torch.load('/project/checkpoints/model.pt', map_location='cpu')
     model.load_state_dict(state_dict)
     model.eval()
     return model
@@ -22,13 +22,14 @@ def load_model():
 def download_image(url):
     # download image from a url and return the filename
     r = requests.get(url, allow_redirects=True)
-    filename = get_filename_from_cd(r.headers.get('content-disposition'))
-    if filename is None:
-        if url.find('/'):
-	        filename = url.rsplit('/', 1)[1]
-        else:
-            filename = 'inputfile.jpg'
-    filename= '/face-seg/data/downloads/'+filename
+    # filename = get_filename_from_cd(r.headers.get('content-disposition'))
+    # if filename is None:
+    #     if url.find('/'):
+	#         filename = url.rsplit('/', 1)[1]
+    #     else:
+    #         filename = 'inputfile.jpg'
+    filename = 'input.png'
+    filename= '/project/data/downloads/'+filename
     open(filename, 'wb').write(r.content)
     return filename
 
