@@ -22,6 +22,8 @@ def load_model():
 def download_image(url):
     # download image from a url and return the filename
     r = requests.get(url, allow_redirects=True)
+
+    #name everything input for now
     # filename = get_filename_from_cd(r.headers.get('content-disposition'))
     # if filename is None:
     #     if url.find('/'):
@@ -68,7 +70,7 @@ def mask_to_binary_mask(mask, image):
     mask=mask.squeeze()
 
     #this file is just temporary so its fine to just leave it
-    mask_file = 'mask.png'
+    mask_file = '/project/data/work/mask.png'
 
     # save and reload it cause I don't know whats wrong
     matplotlib.image.imsave(mask_file,mask)
@@ -122,7 +124,7 @@ def main(args=None, url=None, single_file=None, output_folder=None):
     if output_folder is not None:
         output = str(output_folder) + '/output.gif'
     else:
-        output = 'output.gif'
+        output = '/project/data/output/output.gif'
 
     print("running on ", image_file)
 

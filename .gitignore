@@ -1,0 +1,6 @@
+*.pyc
+tokenfile.py
+data/output/*
+data/work/*
+data/downloads/*
+!data/*/.keep

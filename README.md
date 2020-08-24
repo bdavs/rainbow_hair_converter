@@ -66,5 +66,7 @@ docker build --tag rainbow_waifu .
 ```
 
 ## Results
-![alt text](data/samples/anime_hair_example.png "Input")
-![alt text](data/samples/anime_hair_example_output.gif "Output")
+Input and  Output
+
+![Input](data/samples/anime_hair_example.png "Input")
+![Output](data/samples/anime_hair_example_output.gif "Output")
