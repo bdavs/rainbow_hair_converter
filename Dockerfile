@@ -1,4 +1,5 @@
-FROM pytorch/pytorch
+FROM python:slim
+#FROM pytorch/pytorch
 
 WORKDIR /project
 
@@ -7,8 +8,9 @@ RUN apt update && apt install -y \
     libgl1-mesa-glx \
      && rm -rf /var/lib/apt/lists/*
 
+COPY requirements.txt .
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir discord.py matplotlib opencv-python pillow 
+    pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
