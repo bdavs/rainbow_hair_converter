@@ -12,6 +12,4 @@ RUN pip install --upgrade pip && \
 
 COPY . .
 
-# mkdir /output
-
 CMD [ "python", "./discord_bot.py" ]

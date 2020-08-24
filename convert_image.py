@@ -145,24 +145,18 @@ def main(args=None, url=None, single_file=None, output_folder=None):
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser(description='Semantic Segmentation')
+    parser = argparse.ArgumentParser(description='Rainbow Waifu')
 
+    group = parser.add_mutually_exclusive_group()
     # Arguments
-    parser.add_argument('--data-folder', type=str, default='./data',
-                        help='name of the data folder (default: ./data)')
-    parser.add_argument('--batch-size', type=int, default=8,
-                        help='batch size (default: 8)')
-    parser.add_argument('--pre-trained', type=str, default='./checkpoints/model.pt',
-                        help='path of pre-trained weights (default: ./checkpoints/model.pt)')  
+    group.add_argument('-f','--single-file', type=str, default=None,
+                        help='specify the path to a single file to run on')
 
-    parser.add_argument('-f','--single-file', type=str, default=None,
-                        help='specify a single file to run on')
-
-    parser.add_argument('-u','--url', type=str, default=None,
+    group.add_argument('-u','--url', type=str, default=None,
                         help='specify a url to download from')
 
     parser.add_argument('-o','--output_folder', type=str, default=None,
-                        help='specify a path to write to')
+                        help='specify the path to the folder to write to (default: .)')
 
     args = parser.parse_args()
     # args.device = torch.device("cpu")
