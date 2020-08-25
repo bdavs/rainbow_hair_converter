@@ -13,5 +13,6 @@
  - [ ] image processing
    - [x] more rgb colors (find variable equation) - HSV
    - [ ] apply gradient
- - [ ] check size limit before uploading to discord
-   
+ - [x] check size limit before uploading to discord
+ - [ ] do so much error checking
+ - [ ] alert user I'm working on it

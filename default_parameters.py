@@ -6,5 +6,6 @@ hrange = 15
 srange = 50
 vrange = 50
 mask_opacity = 0.4
+clusterLevel = 0
 
 dev = False

@@ -66,10 +66,8 @@ def color_mask(color,img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     # hsv = cv2.cvtColor(cvim, cv2.COLOR_BGR2HSV)
 
-    #grab hair color
-    color2 = color_object_to_list(color)
     # print(color2) #84,80,83
-    haircolor =   cv2.cvtColor(np.uint8([[color2]]),cv2.COLOR_BGR2HSV)
+    haircolor =   cv2.cvtColor(np.uint8([[color]]),cv2.COLOR_BGR2HSV)
     # print(haircolor[0,0]) #143,12,84
 
     #hair hsv thresholds
@@ -207,35 +205,34 @@ def main(url=None, single_file=None, output_folder=None):
     else:
         output = '/project/data/output/output.gif'
 
-
     #open the file
     cvim = cv2.imread(image_file)
     original = cvim.copy()
-    # img = cvim.copy()
-
-    # img = Image.open(filename)
-    # rgbachannels = img.split()
-    # print(len(rgbchannels))
 
     #get facial feautures, namely hair color
     faces = anime_face_features(image_file)
 
     #no faces identified, time to guess
     if not faces:
-        print(faces)
-        # print(len(cvim[0,0]))
+        # print(faces)
+        # print(cvim[200,500])
         # print(len(cvim[0]))
         # print(len(cvim))
         # print(cvim.shape)
-        return(2)
-    #create a mask from the colors
-    clusterLevel = 0
+        hair_color = cvim[cvim.shape[0]//4,cvim.shape[1]//2]
+        # return(2)
+    else:
+        #grab hair color
+        hair_color = color_object_to_list(faces[0].hair.color)
+
+    #create a mask from the hair colors
+    clusterLevel = dp.clusterLevel
     if clusterLevel > 0:
         # cluster the colors
         clustered = clustering(cvim)
-        mask = color_mask(faces[0].hair.color, clustered)
+        mask = color_mask(hair_color, clustered)
     else:
-        mask = color_mask(faces[0].hair.color, cvim)
+        mask = color_mask(hair_color, cvim)
 
 
     # gradient = make_gradient(cvim)
