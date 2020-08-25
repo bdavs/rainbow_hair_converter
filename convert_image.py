@@ -107,20 +107,12 @@ def main(args=None, url=None, single_file=None, output_folder=None):
     print('Model loaded')
 
     # set up all the input args 
-    # if args.url is not None:
-    #     image_file = download_image(args.url)
     if url is not None:
         image_file = download_image(url)
 
-    # if args.single_file is not None: 
-    #     image_file = args.single_file
     if single_file is not None: 
         image_file = single_file
-
-    # if args.output_folder is not None:
-    #     output = str(args.output_folder) + '/output.gif'
-    # else:
-    #     output = 'output.gif'
+        
     if output_folder is not None:
         output = str(output_folder) + '/output.gif'
     else:
