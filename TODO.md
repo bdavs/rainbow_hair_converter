@@ -1,15 +1,17 @@
  TODO list
  
- - [ ] retrain model to use anime characters
-   - [ ] look for anime (and anime hair) dataset
-     - [ ] take existing anime dataset and get help?
-   - [ ] look into weights
+ - [x] ~~retrain model to use anime characters~~ - switched to non-ml method
+   - [ ] ~~look for anime (and anime hair) dataset~~
+     - [ ] ~~take existing anime dataset and get help?~~
+   - [ ] ~~look into weights~~
  - [x] make into discord bot
    - [ ] choice for style of rainbow (static, gradient, etc)
-   - [ ] retry feature to try with different weights
+   - [ ] retry feature to try with different settings
+     - [ ] parameterize all important settings
+     - [ ] allow bot to imput settings
  - [ ] request permission for distribution
  - [ ] image processing
-   - [ ] more rgb colors (find variable equation)
+   - [x] more rgb colors (find variable equation) - HSV
    - [ ] apply gradient
  - [ ] check size limit before uploading to discord
    

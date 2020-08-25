@@ -1,10 +1,12 @@
 import animeface
 import requests
 import math
+import os
 from PIL import Image
 import cv2
 import numpy as np
-import default_parameters 
+import default_parameters as dp 
+import gif_resize
 
 def bound(minx, x, maxx):
     if x < minx: return minx
@@ -43,7 +45,6 @@ def anime_face_features(filename):
 
 def clustering(img):
     #clustering
-
     Z = img.reshape((-1,3))
     # convert to np.float32
     Z = np.float32(Z)
@@ -56,8 +57,10 @@ def clustering(img):
     res1 = center[label.flatten()]
     res2 = res1.reshape((img.shape))
 
-    return (res2)
+    if dp.dev:
+        cv2.imwrite('alt_methods/clustered.png',clustered)
 
+    return (res2)
 
 def color_mask(color,img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -70,9 +73,9 @@ def color_mask(color,img):
     # print(haircolor[0,0]) #143,12,84
 
     #hair hsv thresholds
-    hrange = default_parameters.hrange
-    srange = default_parameters.srange
-    vrange = default_parameters.vrange
+    hrange = dp.hrange
+    srange = dp.srange
+    vrange = dp.vrange
     lower_color = np.array([bound(0,haircolor[0,0,0]-hrange,180),
                             bound(0,haircolor[0,0,1]-srange,255),
                             bound(0,haircolor[0,0,2]-vrange,255)
@@ -86,21 +89,40 @@ def color_mask(color,img):
 
     # get everything between the thresholds
     mask = cv2.inRange(hsv, lower_color, upper_color)
+
+    if dp.dev:
+        cv2.imwrite('alt_methods/initmask.png',mask)
+
     return(mask)
+
+def make_gradient(img,style=cv2.COLORMAP_RAINBOW):
+        # create a gradient
+    white_image = np.zeros([img.shape[0],img.shape[1],3],dtype=np.uint8)
+    white_image.fill(255)
+    gradient = np.repeat(np.tile(np.linspace(1, 0, img.shape[1]), (img.shape[0], 1))[:, :, np.newaxis], 3, axis=2)
+    gradient = gradient * white_image
+    gradient = np.uint8(gradient)
+    gradient = cv2.applyColorMap(gradient, style)
+    return(gradient)
 
 def noise_reduction(img):
     #noise reduction
-    # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2,2))
-    # opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, iterations=1)
+    se1 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2,2))
+    se2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
 
-    se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (2,2))
-    se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
-    closed = cv2.morphologyEx(img, cv2.MORPH_CLOSE, se1)
-    opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, se2)
+    # img = cv2.erode(img, se1)
+
+    closed = cv2.morphologyEx(img, cv2.MORPH_CLOSE, se1,iterations=1)
+    opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, se2,iterations=3)
+
+    # img = cv2.dilate(img, se2,iterations=3)
+
+    if dp.dev:
+        cv2.imwrite('alt_methods/noise_reduced.png',opened)
 
     return(opened)
 
-def contouring(original,mask,min_island_size):
+def contouring(original,mask,min_island_size=dp.min_island_size):
     mask_new = np.zeros(mask.shape,np.uint8)
     contours, hier = cv2.findContours(mask,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
@@ -108,39 +130,68 @@ def contouring(original,mask,min_island_size):
             cv2.drawContours(original,[cnt],0,(0,255,0),2)
             cv2.drawContours(mask_new,[cnt],0,255,-1)
 
-    return(original,mask_new)
+    if dp.dev:
+        cv2.imwrite('alt_methods/contoured.png',original)
 
-def image_to_rainbow_gif(image,binarymask,num_colors,gif_file):
+    return(mask_new)
+
+def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors):
     # take single image and mask and output rainbow gif
     image_array = []
-    # quick lut to change colors
-    # rgb_lut = [(0,0,255),(0,255,255),(0,255,0),(255,255,0),(255,0,0),(255,0,255)]
+
     rgb_lut = []
     h=0
-    s=default_parameters.saturation
-    v=default_parameters.valueC
-    # num_colors=10
+    s=dp.saturation
+    v=dp.valueC
     width = 180/num_colors
     for i in range(num_colors):
         h += width
         rgb_lut.append(cv2.cvtColor(np.uint8([[[h,s,v]]]),cv2.COLOR_HSV2RGB)[0,0].tolist())
 
+    # prepare the mask
+    prepared_mask = np.zeros(image.shape, image.dtype)
+    prepared_mask[:,:,0] = binarymask
+    prepared_mask[:,:,1] = binarymask
+    prepared_mask[:,:,2] = binarymask
+    zeros = np.zeros(image.shape, image.dtype)
+    prepared_mask = prepared_mask / 255
 
-    
-
-    # print(rgb_lut)
     # loop through all combinations of colors
     for rgb_val in rgb_lut:
 
         colorImg = np.zeros(image.shape, image.dtype)
         colorImg[:,:] = rgb_val
-        colorMask = cv2.bitwise_and(colorImg, colorImg, mask=binarymask)
-        weightedImage = cv2.addWeighted(colorMask, .5, image, 1, 0)
+
+        # color_mask = cv2.bitwise_and(colorImg, colorImg, mask=binarymask) 
+        # apply mask to color       
+        color_mask = np.uint8(colorImg * prepared_mask + zeros * (1 - prepared_mask))
+
+        # if dp.dev:
+        #     cv2.imwrite('alt_methods/color_mask.png',color_mask)
+        
+        weightedImage = cv2.addWeighted(color_mask, dp.mask_opacity, image, 1, 0)
         completedImage = Image.fromarray(weightedImage)
+        
+        # completedImage = completedImage.resize((600,800),Image.ANTIALIAS)
         image_array.append(completedImage)
 
     # create gif with array of images 
-    image_array[0].save(gif_file,save_all=True, append_images=image_array[1:], optimize=False, duration=400, loop=0)
+    
+    image_array[0].save(gif_file,save_all=True, append_images=image_array[1:], optimize=True, duration=100, loop=0)
+    filesize = os.path.getsize(gif_file)
+    print(filesize)
+    
+    # resize large gif to allow them to be sent over discord
+    while filesize > 8000000:
+        gif = Image.open(gif_file)
+        resize_to = (gif.size[0] //1.33, gif.size[1] // 1.33)
+        gif.close()
+        gif_resize.resize_gif(gif_file,resize_to=resize_to)
+        filesize = os.path.getsize(gif_file)
+        print(filesize)
+
+    # completedImage = completedImage.resize((600,800),Image.ANTIALIAS)
+
 
 def main(url=None, single_file=None, output_folder=None):
 
@@ -162,51 +213,70 @@ def main(url=None, single_file=None, output_folder=None):
     original = cvim.copy()
     # img = cvim.copy()
 
+    # img = Image.open(filename)
+    # rgbachannels = img.split()
+    # print(len(rgbchannels))
+
     #get facial feautures, namely hair color
     faces = anime_face_features(image_file)
 
-
-    clusterLevel = 0
+    #no faces identified, time to guess
+    if not faces:
+        print(faces)
+        # print(len(cvim[0,0]))
+        # print(len(cvim[0]))
+        # print(len(cvim))
+        # print(cvim.shape)
+        return(2)
     #create a mask from the colors
+    clusterLevel = 0
     if clusterLevel > 0:
         # cluster the colors
         clustered = clustering(cvim)
-        cv2.imwrite('alt_methods/clustered.png',clustered)
         mask = color_mask(faces[0].hair.color, clustered)
     else:
         mask = color_mask(faces[0].hair.color, cvim)
 
-    # mask = cv2.medianBlur(mask,3)
+
+    # gradient = make_gradient(cvim)
+
 
     #reduce the noise in the image
     mask = noise_reduction(mask)
 
     #trace around the largest areas
-    original,mask = contouring(original,mask,default_parameters.min_island_size)
+    mask = contouring(original,mask)
 
-    mask = cv2.GaussianBlur(mask,(11,11),10)
+    # add blur to feather/smooth edges
+    mask = cv2.GaussianBlur(mask,(21,21),5)
+    # _,mask = cv2.threshold(mask,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    # mask = cv2.GaussianBlur(mask,(5,5),5)
+    # mask = cv2.blur(mask,(5,5))
 
-    #show non masked area
-    res = cv2.bitwise_and(cvim,cvim, mask= mask)
+
+
+    # dilate for testing
+    # se2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
+    # mask = cv2.dilate(mask, se2,iterations=1)
+
+
 
     #write everything to files for development
-    cv2.imwrite('alt_methods/cvim.png',cvim)
-    cv2.imwrite('alt_methods/mask.png',mask)
-    cv2.imwrite('alt_methods/res.png',res)
-    cv2.imwrite('alt_methods/contoured.png',original)
+    if dp.dev:
+        #show non masked area
+        res = cv2.bitwise_or(cvim,cvim, mask= mask)
+        cv2.imwrite('alt_methods/cvim.png',cvim)
+        # cv2.imwrite('alt_methods/gradient.png',gradient)
+        cv2.imwrite('alt_methods/mask.png',mask)
+        cv2.imwrite('alt_methods/res.png',res)
 
     # convert to rgb
     cvim_rgb = cv2.cvtColor(cvim, cv2.COLOR_BGR2RGB)
 
     #execute rainbow function
-    image_to_rainbow_gif(cvim_rgb,mask,default_parameters.num_colors,output)
+    image_to_rainbow_gif(cvim_rgb,mask,output)
+
 
 if __name__ == '__main__':
     filename = '/project/data/downloads/input.png'
     main(single_file=filename,output_folder=".")
-
-# rgb_val = faces[0].hair.color
-# rgb_val = color2
-# colorImg = np.zeros(cvim.shape, cvim.dtype)
-# colorImg[:,:] = rgb_val
-# cv2.imwrite("color.png", colorImg)
