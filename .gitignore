@@ -4,3 +4,6 @@ data/output/*
 data/work/*
 data/downloads/*
 !data/*/.keep
+alt_methods/*
+*.gif
+.vscode
