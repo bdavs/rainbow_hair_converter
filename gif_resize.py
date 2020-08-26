@@ -1,5 +1,6 @@
 import os
 from PIL import Image
+import default_parameters as dp
 def resize_gif(path, save_as=None, resize_to=None):
     """
     Resizes the GIF to a given length:
@@ -19,7 +20,7 @@ def resize_gif(path, save_as=None, resize_to=None):
         print("Warning: only 1 frame found")
         all_frames[0].save(save_as, optimize=True)
     else:
-        all_frames[0].save(save_as, optimize=True, save_all=True, append_images=all_frames[1:], loop=1000)
+        all_frames[0].save(save_as, optimize=True, save_all=True, append_images=all_frames[1:], duration=dp.duration, loop=0)
 
 
 def analyseImage(path):

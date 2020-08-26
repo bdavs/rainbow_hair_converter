@@ -5,7 +5,10 @@ valueC = 255
 hrange = 15
 srange = 50
 vrange = 50
-mask_opacity = 0.4
+mask_opacity = 0.7
 clusterLevel = 0
+size_check = False
+duration = 200
+gradient = True
 
-dev = False
+dev = True

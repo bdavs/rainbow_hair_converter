@@ -93,15 +93,51 @@ def color_mask(color,img):
 
     return(mask)
 
-def make_gradient(img,style=cv2.COLORMAP_RAINBOW):
+def make_gradient(img,style=cv2.COLORMAP_HSV):
         # create a gradient
     white_image = np.zeros([img.shape[0],img.shape[1],3],dtype=np.uint8)
     white_image.fill(255)
-    gradient = np.repeat(np.tile(np.linspace(1, 0, img.shape[1]), (img.shape[0], 1))[:, :, np.newaxis], 3, axis=2)
+
+    rampl = np.linspace(1, 0, img.shape[0])
+    rampl = np.tile(np.transpose(rampl), (img.shape[1],1))
+    rampl = np.transpose(rampl)
+    gradient = cv2.merge([rampl,rampl,rampl])
+    # gradient = np.repeat(np.tile((img.shape[1], 1),np.linspace(1, 0, img.shape[0]))[:, :, np.newaxis], 3, axis=2)
+    # gradient = np.repeat(np.tile(np.linspace(1, 0, img.shape[1]), (img.shape[0], 1))[:, :, np.newaxis], 3, axis=2)
     gradient = gradient * white_image
     gradient = np.uint8(gradient)
     gradient = cv2.applyColorMap(gradient, style)
+    
+    if dp.dev:
+        cv2.imwrite('alt_methods/gradient.png',gradient)
+
     return(gradient)
+
+def make_gradient_array(img,num_colors):
+    width = 180//num_colors
+
+    gradient = make_gradient(img)
+    grad_array = []
+    h_mov=0
+    for i in range(num_colors):
+
+        hsv_grad = cv2.cvtColor(gradient,cv2.COLOR_RGB2HSV)
+        # hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        h_val, s, v = cv2.split(hsv_grad)
+        # ((h.astype('int16') + shift_h) % 180).astype('uint8')
+        shift_h = ((h_val.astype('int16') + h_mov) % 180).astype('uint8')
+        shift_hsv = cv2.merge([shift_h, s, v])
+        shift_img = cv2.cvtColor(shift_hsv, cv2.COLOR_HSV2RGB)
+
+        grad_array.append(shift_img)
+        h_mov += width
+
+        if dp.dev:
+            # print("wrote image")
+            cv2.imwrite('alt_methods/colors/color_mask{}.png'.format(i),shift_img)
+
+    print(len(grad_array))
+    return(grad_array)
 
 def noise_reduction(img):
     #noise reduction
@@ -137,14 +173,19 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors):
     # take single image and mask and output rainbow gif
     image_array = []
 
+    # num_colors = 5
     rgb_lut = []
+
     h=0
     s=dp.saturation
     v=dp.valueC
-    width = 180/num_colors
+    width = 180//num_colors
     for i in range(num_colors):
-        h += width
         rgb_lut.append(cv2.cvtColor(np.uint8([[[h,s,v]]]),cv2.COLOR_HSV2RGB)[0,0].tolist())
+        h += width
+
+    if dp.gradient is True:
+        grad_array = make_gradient_array(image,num_colors)
 
     # prepare the mask
     prepared_mask = np.zeros(image.shape, image.dtype)
@@ -154,20 +195,27 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors):
     zeros = np.zeros(image.shape, image.dtype)
     prepared_mask = prepared_mask / 255
 
+    # i = 0
     # loop through all combinations of colors
-    for rgb_val in rgb_lut:
+    for i in range(num_colors):
+    # for rgb_val in rgb_lut:
 
         colorImg = np.zeros(image.shape, image.dtype)
-        colorImg[:,:] = rgb_val
+        if dp.gradient is True:
+            colorImg[:,:] = grad_array[i]
+        else:
+            colorImg[:,:] = rgb_lut[i]
+        # colorImg[:,:] = grad_array[i]
+        # rgb_val
+        # i+= width
+        color_mask = cv2.bitwise_and(colorImg, colorImg, mask=binarymask) 
 
-        # color_mask = cv2.bitwise_and(colorImg, colorImg, mask=binarymask) 
+        
         # apply mask to color       
         color_mask = np.uint8(colorImg * prepared_mask + zeros * (1 - prepared_mask))
-
-        # if dp.dev:
-        #     cv2.imwrite('alt_methods/color_mask.png',color_mask)
-        
         weightedImage = cv2.addWeighted(color_mask, dp.mask_opacity, image, 1, 0)
+
+        # completedImage = Image.fromarray(colorImg)
         completedImage = Image.fromarray(weightedImage)
         
         # completedImage = completedImage.resize((600,800),Image.ANTIALIAS)
@@ -175,20 +223,18 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors):
 
     # create gif with array of images 
     
-    image_array[0].save(gif_file,save_all=True, append_images=image_array[1:], optimize=True, duration=100, loop=0)
+    image_array[0].save(gif_file,save_all=True, append_images=image_array[1:], optimize=True, duration=500, loop=0)
     filesize = os.path.getsize(gif_file)
     print(filesize)
     
     # resize large gif to allow them to be sent over discord
-    while filesize > 8000000:
+    while filesize > 8000000 and dp.size_check is True:
         gif = Image.open(gif_file)
         resize_to = (gif.size[0] //1.33, gif.size[1] // 1.33)
         gif.close()
         gif_resize.resize_gif(gif_file,resize_to=resize_to)
         filesize = os.path.getsize(gif_file)
         print(filesize)
-
-    # completedImage = completedImage.resize((600,800),Image.ANTIALIAS)
 
 
 def main(url=None, single_file=None, output_folder=None):
@@ -214,13 +260,7 @@ def main(url=None, single_file=None, output_folder=None):
 
     #no faces identified, time to guess
     if not faces:
-        # print(faces)
-        # print(cvim[200,500])
-        # print(len(cvim[0]))
-        # print(len(cvim))
-        # print(cvim.shape)
         hair_color = cvim[cvim.shape[0]//4,cvim.shape[1]//2]
-        # return(2)
     else:
         #grab hair color
         hair_color = color_object_to_list(faces[0].hair.color)

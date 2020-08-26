@@ -15,6 +15,8 @@ async def test(ctx, arg):
 
 @bot.command()
 async def url(ctx, image_url):
+    if not image_url:
+        await ctx.send('No url provided')
     make_gif.main(url=image_url)
     await ctx.send(file=discord.File(IMAGE_FILE))
 
