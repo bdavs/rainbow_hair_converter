@@ -136,7 +136,6 @@ def make_gradient_array(img,num_colors):
             # print("wrote image")
             cv2.imwrite('alt_methods/colors/color_mask{}.png'.format(i),shift_img)
 
-    print(len(grad_array))
     return(grad_array)
 
 def noise_reduction(img):
@@ -213,7 +212,7 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors):
         
         # apply mask to color       
         color_mask = np.uint8(colorImg * prepared_mask + zeros * (1 - prepared_mask))
-        weightedImage = cv2.addWeighted(color_mask, dp.mask_opacity, image, 1, 0)
+        weightedImage = cv2.addWeighted(color_mask, dp.mask_opacity, image, dp.original_opacity, 0)
 
         # completedImage = Image.fromarray(colorImg)
         completedImage = Image.fromarray(weightedImage)
@@ -225,17 +224,17 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors):
     
     image_array[0].save(gif_file,save_all=True, append_images=image_array[1:], optimize=True, duration=500, loop=0)
     filesize = os.path.getsize(gif_file)
-    print(filesize)
     
     # resize large gif to allow them to be sent over discord
     while filesize > 8000000 and dp.size_check is True:
+        print(f'current filesize is {filesize}, reducing')
         gif = Image.open(gif_file)
         resize_to = (gif.size[0] //1.33, gif.size[1] // 1.33)
         gif.close()
         gif_resize.resize_gif(gif_file,resize_to=resize_to)
         filesize = os.path.getsize(gif_file)
-        print(filesize)
 
+    print(f'final filesize {filesize}, saved')
 
 def main(url=None, single_file=None, output_folder=None):
 
@@ -290,13 +289,9 @@ def main(url=None, single_file=None, output_folder=None):
     # mask = cv2.GaussianBlur(mask,(5,5),5)
     # mask = cv2.blur(mask,(5,5))
 
-
-
     # dilate for testing
     # se2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
     # mask = cv2.dilate(mask, se2,iterations=1)
-
-
 
     #write everything to files for development
     if dp.dev:
@@ -312,6 +307,8 @@ def main(url=None, single_file=None, output_folder=None):
 
     #execute rainbow function
     image_to_rainbow_gif(cvim_rgb,mask,output)
+
+    return(output)
 
 
 if __name__ == '__main__':

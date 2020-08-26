@@ -1,11 +1,12 @@
 *.pyc
-tokenfile.py
-tokenfile_main.py
+__pycache__
+.git
 data/output/*
 data/work/*
 data/downloads/*
 !data/*/.keep
 alt_methods/*
+!alt_methods/.keep
 *.gif
 .vscode
 discord.log
