@@ -9,6 +9,7 @@
    - [ ] retry feature to try with different settings
      - [ ] parameterize all important settings
      - [ ] allow bot to imput settings
+     - [ ] make a "greediness" level that covers lots of the settings
  - [ ] request permission for distribution
  - [ ] image processing
    - [x] more rgb colors (find variable equation) - HSV

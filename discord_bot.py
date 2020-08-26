@@ -45,9 +45,9 @@ async def pic(ctx, arg=None):
 async def send_image(ctx, image_url):
     bot_message = await ctx.send('Beep. Boop. Processing your image...')
     try:
-        # await get_src_image(image_url)
-        make_gif.main(url=image_url)
-        # single_file=INPUT_FILE)
+        await get_src_image(ctx,image_url)
+        make_gif.main(single_file=INPUT_FILE)
+            # url=image_url)
         await ctx.send(file=discord.File(IMAGE_FILE))
     except aiohttp.client_exceptions.InvalidURL:
         await ctx.send('Couldn\'t get that url')
@@ -65,14 +65,15 @@ async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
 
 
-async def get_src_image(my_url):
+async def get_src_image(ctx,my_url):
     async with aiohttp.ClientSession() as session:
         async with session.get(my_url) as resp:
             if resp.status != 200:
-                return await channel.send('Could not download file...')
+                return await ctx.send('Could not download file...')
             data = io.BytesIO(await resp.read())
+            # io.FileIO(INPUT_FILE,'w').write(data)
             with open(INPUT_FILE,'wb') as f:
-                f.write(data)
+                f.write(data.getbuffer())
             # return data
             # await channel.send(file=discord.File(data, 'cool_image.png'))
 

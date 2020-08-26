@@ -58,7 +58,7 @@ def clustering(img):
     res2 = res1.reshape((img.shape))
 
     if dp.dev:
-        cv2.imwrite('alt_methods/clustered.png',clustered)
+        cv2.imwrite('alt_methods/clustered.png',res2)
 
     return (res2)
 
@@ -74,12 +74,12 @@ def color_mask(color,img):
     hrange = dp.hrange
     srange = dp.srange
     vrange = dp.vrange
-    lower_color = np.array([bound(0,haircolor[0,0,0]-hrange,180),
+    lower_color = np.array([bound(0,haircolor[0,0,0]-hrange,179),
                             bound(0,haircolor[0,0,1]-srange,255),
                             bound(0,haircolor[0,0,2]-vrange,255)
                             ])
     # lower_red = np.array([30,150,50])
-    upper_color = np.array([bound(0,haircolor[0,0,0]+hrange,180),
+    upper_color = np.array([bound(0,haircolor[0,0,0]+hrange,179),
                             bound(0,haircolor[0,0,1]+srange,255),
                             bound(0,haircolor[0,0,2]+vrange,255)
                             ])
@@ -108,8 +108,8 @@ def make_gradient(img,style=cv2.COLORMAP_HSV):
     gradient = np.uint8(gradient)
     gradient = cv2.applyColorMap(gradient, style)
     
-    if dp.dev:
-        cv2.imwrite('alt_methods/gradient.png',gradient)
+    # if dp.dev:
+        # cv2.imwrite('alt_methods/gradient.png',gradient)
 
     return(gradient)
 
@@ -132,9 +132,9 @@ def make_gradient_array(img,num_colors):
         grad_array.append(shift_img)
         h_mov += width
 
-        if dp.dev:
+        # if dp.dev:
             # print("wrote image")
-            cv2.imwrite('alt_methods/colors/color_mask{}.png'.format(i),shift_img)
+            # cv2.imwrite('alt_methods/colors/color_mask{}.png'.format(i),shift_img)
 
     return(grad_array)
 
@@ -144,11 +144,9 @@ def noise_reduction(img):
     se2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
 
     # img = cv2.erode(img, se1)
-
-    closed = cv2.morphologyEx(img, cv2.MORPH_CLOSE, se1,iterations=1)
+    img = cv2.dilate(img, se1,iterations=1)
+    closed = cv2.morphologyEx(img, cv2.MORPH_CLOSE, se1,iterations=3)
     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, se2,iterations=3)
-
-    # img = cv2.dilate(img, se2,iterations=3)
 
     if dp.dev:
         cv2.imwrite('alt_methods/noise_reduced.png',opened)
