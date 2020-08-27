@@ -16,5 +16,8 @@
    - [x] apply gradient
  - [x] check size limit before uploading to discord
  - [ ] do so much error checking
- - [ ] alert user I'm working on it
+   - [ ] check for valid http
+   - [ ] check for valid commands in general
+ - [x] alert user I'm working on it
  - [ ] make a manual and help commands
+ - [ ] pass everything as an object, no need to write to disk

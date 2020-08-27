@@ -166,9 +166,14 @@ def contouring(original,mask,min_island_size=dp.min_island_size):
 
     return(mask_new)
 
-def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors):
+def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,options=None):
     # take single image and mask and output rainbow gif
     image_array = []
+
+    if options is not None:
+        use_gradient = options
+    else :
+        use_gradient = dp.gradient
 
     # num_colors = 5
     rgb_lut = []
@@ -181,7 +186,7 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors):
         rgb_lut.append(cv2.cvtColor(np.uint8([[[h,s,v]]]),cv2.COLOR_HSV2RGB)[0,0].tolist())
         h += width
 
-    if dp.gradient is True:
+    if use_gradient is True:
         grad_array = make_gradient_array(image,num_colors)
 
     # prepare the mask
@@ -192,22 +197,17 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors):
     zeros = np.zeros(image.shape, image.dtype)
     prepared_mask = prepared_mask / 255
 
-    # i = 0
     # loop through all combinations of colors
     for i in range(num_colors):
-    # for rgb_val in rgb_lut:
 
         colorImg = np.zeros(image.shape, image.dtype)
-        if dp.gradient is True:
+        if use_gradient is True:
             colorImg[:,:] = grad_array[i]
         else:
             colorImg[:,:] = rgb_lut[i]
-        # colorImg[:,:] = grad_array[i]
-        # rgb_val
-        # i+= width
+
         color_mask = cv2.bitwise_and(colorImg, colorImg, mask=binarymask) 
 
-        
         # apply mask to color       
         color_mask = np.uint8(colorImg * prepared_mask + zeros * (1 - prepared_mask))
         weightedImage = cv2.addWeighted(color_mask, dp.mask_opacity, image, dp.original_opacity, 0)
@@ -234,7 +234,7 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors):
 
     print(f'final filesize {filesize}, saved')
 
-def main(url=None, single_file=None, output_folder=None):
+def main(url=None, single_file=None, output_folder=None, options=None):
 
     # set up all the input args 
     if url is not None:
@@ -304,7 +304,7 @@ def main(url=None, single_file=None, output_folder=None):
     cvim_rgb = cv2.cvtColor(cvim, cv2.COLOR_BGR2RGB)
 
     #execute rainbow function
-    image_to_rainbow_gif(cvim_rgb,mask,output)
+    image_to_rainbow_gif(cvim_rgb,mask,output,options=options)
 
     return(output)
 
