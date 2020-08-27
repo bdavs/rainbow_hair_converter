@@ -171,8 +171,13 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,opti
     image_array = []
 
     if options is not None:
-        use_gradient = options
-    else :
+        if options['gradient'] >= 1:
+            use_gradient = True
+        else:
+            use_gradient = False
+        if options['num_colors']:
+            num_colors = options['num_colors']
+    else:
         use_gradient = dp.gradient
 
     # num_colors = 5
@@ -219,7 +224,6 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,opti
         image_array.append(completedImage)
 
     # create gif with array of images 
-    
     image_array[0].save(gif_file,save_all=True, append_images=image_array[1:], optimize=True, duration=500, loop=0)
     filesize = os.path.getsize(gif_file)
     
@@ -248,6 +252,10 @@ def main(url=None, single_file=None, output_folder=None, options=None):
     else:
         output = '/project/data/output/output.gif'
 
+    #if input_stream is not None:
+        # cv2.imdecode(input_stream)
+
+
     #open the file
     cvim = cv2.imread(image_file)
     original = cvim.copy()
@@ -271,10 +279,6 @@ def main(url=None, single_file=None, output_folder=None, options=None):
     else:
         mask = color_mask(hair_color, cvim)
 
-
-    # gradient = make_gradient(cvim)
-
-
     #reduce the noise in the image
     mask = noise_reduction(mask)
 
@@ -283,13 +287,6 @@ def main(url=None, single_file=None, output_folder=None, options=None):
 
     # add blur to feather/smooth edges
     mask = cv2.GaussianBlur(mask,(21,21),5)
-    # _,mask = cv2.threshold(mask,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    # mask = cv2.GaussianBlur(mask,(5,5),5)
-    # mask = cv2.blur(mask,(5,5))
-
-    # dilate for testing
-    # se2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
-    # mask = cv2.dilate(mask, se2,iterations=1)
 
     #write everything to files for development
     if dp.dev:

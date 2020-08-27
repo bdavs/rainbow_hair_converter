@@ -1,5 +1,6 @@
 from tokenfile import TOKEN
 from discord.ext import commands
+import re
 import io
 import aiohttp
 import discord
@@ -25,40 +26,64 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'), description=d
 
 
 @bot.command()
-async def test(ctx, *, args):
+async def test(ctx, *args):
     await ctx.send(args[-1])
 
-def process_other_args(args):
+url_regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
+
+def process_args(args):
+    image_url=None
+    options={'gradient':0,'num_colors':16}
     for arg in args:
-        if arg == 'gradient':
-            return True
+        if re.match(url_regex,arg) is not None:
+            print(f"found a url, {arg}")
+            image_url = arg
+        elif arg == 'gradient':
+            options['gradient']=1
         elif arg == 'solid':
-            return False
+            options['gradient']=0
+        elif arg[0] =='c':
+            options['num_colors']=int(arg[1:])
         else:
-            return False
+            options['gradient']=0
+    print(options)
+    return options,image_url
 
 @bot.command()
-async def url(ctx, image_url:str=None, options:bool=False):
-    # print(args)
-    # image_url = args[-1]
-    if not image_url:
+async def url(ctx, *args):
+    if len(args) == 0:
+        ctx.send('No url provided')
+        return
+
+    print(args)
+    options,image_url = process_args(args)
+
+    if image_url is None:
         await ctx.send('No url provided')
         return
-    # if len(args) > 1:
-        # options = process_other_args(args)
-    # else:
-        # options = False
-    await send_image(ctx, image_url, options)
+    if len(args) > 1:
+        await send_image(ctx, image_url, options)
+    else:
+        await send_image(ctx, image_url)
+        
 
 @bot.command()
-async def pic(ctx, *, args):
+async def pic(ctx, *args):
     try:
         attachment_string = ctx.message.attachments[0]
         x = re.search("url=\'(.+)\'", str(attachment_string))
         image_url = x.groups()[0]
-        await send_image(ctx, image_url)
+        if len(args) > 0:
+            options,_ = process_args(args)
+            await send_image(ctx, image_url, options)
+        else:
+            await send_image(ctx, image_url)
     except IndexError:
         await ctx.send('No image provided')
+    except:
+        await ctx.send('Uh oh, something went wrong. go yell at @bdavs')
+        print("Unexpected error:", sys.exc_info()[0])
+        raise
 
 async def send_image(ctx, image_url, options):
     bot_message = await ctx.send('Beep. Boop. Processing your image...')
