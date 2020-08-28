@@ -3,7 +3,7 @@ FROM python:3.6-slim
 
 WORKDIR /project
 
-RUN apt update && apt install -y \
+RUN apt update && apt install -y --no-install-recommends\
     libgtk2.0-dev \
     libgl1-mesa-glx \
      && rm -rf /var/lib/apt/lists/*
