@@ -1,13 +1,20 @@
-from tokenfile import TOKEN
+try:
+    # get discord token from file
+    from tokenfile import TOKEN
+except ModuleNotFoundError:
+    #get discord token from environment
+    import os
+    TOKEN = os.environ['TOKEN']
 from discord.ext import commands
 import random as rand
 import io
 import aiohttp
 import discord
 import re
-import make_gif
 import logging
 import sys
+
+import make_gif
 
 #logging setup
 logger = logging.getLogger('discord')
@@ -25,6 +32,7 @@ description =   """This bot can turn your waifu rainbow.
                 $url f3 gradient https://www.kindpng.com/picc/m/274-2748314_freetoedit-menherachan-animegirl-animecute-png-kawaii-anime-girl.png
 
                 Works best on clean images where the hair is easily defined and the face is easily visible
+                Prefix for all commands is $
                 """
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'), description=description, case_insensitive=True)

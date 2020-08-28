@@ -10,3 +10,4 @@ alt_methods/*
 *.gif
 .vscode
 discord.log
+tokenfile.py
