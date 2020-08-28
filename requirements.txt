@@ -1,8 +1,8 @@
 animeface
 discord.py 
-matplotlib 
 opencv-python
 pillow 
 requests
-torch
-torchvision
+# matplotlib 
+# torch
+# torchvision

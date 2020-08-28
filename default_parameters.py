@@ -13,4 +13,4 @@ size_check = True
 duration = 100
 gradient = False
 
-dev = True
+dev = False

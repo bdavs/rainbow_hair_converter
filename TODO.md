@@ -25,3 +25,5 @@
    - [ ] readme
  - [ ] pass everything as an object, no need to write to disk
  - [ ] speed up by resizing large images to avoid resizing the full gif
+ - [ ] allow multiple prompts to be addressed at once
+ - [ ] regex bug?

@@ -2,7 +2,6 @@
 tokenfile.py
 tokenfile_main.py
 data/output/*
-data/work/*
 data/downloads/*
 !data/*/.keep
 alt_methods/*
