@@ -1,5 +1,5 @@
 *.pyc
-# tokenfile.py
+tokenfile.py
 tokenfile_main.py
 data/output/*
 data/downloads/*
