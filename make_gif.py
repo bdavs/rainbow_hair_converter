@@ -371,7 +371,7 @@ def main(url=None, single_file=None, output_folder=None, input_stream=None, opti
 
     if clusterLevel > 0:
         # cluster the colors
-        preprocessed = clustering(cvim)
+        preprocessed = clustering(cvim,clusterLevel)
     else:
         preprocessed = cvim
 
