@@ -18,9 +18,9 @@ def resize_gif(path, save_as=None, resize_to=None):
 
     if len(all_frames) == 1:
         print("Warning: only 1 frame found")
-        all_frames[0].save(save_as, optimize=True)
+        all_frames[0].save(save_as, format='PNG',optimize=True)
     else:
-        all_frames[0].save(save_as, optimize=True, save_all=True, append_images=all_frames[1:], duration=dp.duration, loop=0)
+        all_frames[0].save(save_as, format='GIF', optimize=True, save_all=True, append_images=all_frames[1:], duration=dp.duration, loop=0)
 
 
 def analyseImage(path):
@@ -77,8 +77,8 @@ def extract_and_resize_frames(path, resize_to=None):
             If the GIF uses local colour tables, each frame will have its own palette.
             If not, we need to apply the global palette to the new frame.
             '''
-            if not im.getpalette():
-                im.putpalette(p)
+            # if not im.getpalette():
+            #     im.putpalette(p)
 
             new_frame = Image.new('RGBA', im.size)
 

@@ -2,11 +2,14 @@ import animeface
 import requests
 import math
 import os
+from io import BytesIO
 from PIL import Image
 import cv2
 import numpy as np
 import default_parameters as dp 
 import gif_resize
+
+# dp.MAX_DISCORD_FILE_SIZE = 8000000
 
 def bound(minx, x, maxx):
     if x < minx: return minx
@@ -17,11 +20,7 @@ def remap(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 def color_object_to_list(color):
-    # rgb = []
-    # rgb.append(color.r)
-    # rgb.append(color.g)
-    # rgb.append(color.b)
-
+    # convert rgb tuple to list
     bgr = []
     bgr.append(color.b)
     bgr.append(color.g)
@@ -36,9 +35,14 @@ def download_image(url):
     open(filename, 'wb').write(r.content)
     return filename
 
-def anime_face_features(filename):
+def anime_face_features(filename=None,input_stream=None):
     #animefaces detection
-    im = Image.open(filename)
+    if filename is not None:
+        im = Image.open(filename)
+    elif input_stream is not None:
+        im = Image.open(input_stream)
+    else:
+        raise
     faces = animeface.detect(im)
     # print(faces)
     return(faces)
@@ -174,18 +178,16 @@ def noise_reduction(img):
 
     return(opened)
 
-def contouring(original,mask,min_island_size=dp.min_island_size):
+def contouring(img,mask,min_island_size=dp.min_island_size):
 
     min_island_size = min(mask.shape[0],mask.shape[1]) * 2.5
     mask_new = np.zeros(mask.shape,np.uint8)
     contours, hier = cv2.findContours(mask,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
         if min_island_size<cv2.contourArea(cnt):
-            cv2.drawContours(original,[cnt],0,(0,255,0),2)
             cv2.drawContours(mask_new,[cnt],0,255,-1)
 
     if dp.dev:
-        cv2.imwrite('alt_methods/contoured.png',original)
         cv2.imwrite('alt_methods/mask_new.png',mask_new)
 
     return(mask_new)
@@ -199,14 +201,9 @@ def make_gradient(img,style=cv2.COLORMAP_HSV):
     rampl = np.tile(np.transpose(rampl), (img.shape[1],1))
     rampl = np.transpose(rampl)
     gradient = cv2.merge([rampl,rampl,rampl])
-    # gradient = np.repeat(np.tile((img.shape[1], 1),np.linspace(1, 0, img.shape[0]))[:, :, np.newaxis], 3, axis=2)
-    # gradient = np.repeat(np.tile(np.linspace(1, 0, img.shape[1]), (img.shape[0], 1))[:, :, np.newaxis], 3, axis=2)
     gradient = gradient * white_image
     gradient = np.uint8(gradient)
     gradient = cv2.applyColorMap(gradient, style)
-    
-    # if dp.dev:
-        # cv2.imwrite('alt_methods/gradient.png',gradient)
 
     return(gradient)
 
@@ -229,8 +226,6 @@ def make_gradient_array(img,num_colors):
         grad_array.append(shift_img)
         h_mov += width
 
-        # if dp.dev:
-            # cv2.imwrite('alt_methods/colors/color_mask{}.png'.format(i),shift_img)
 
     return(grad_array)
 
@@ -285,28 +280,47 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,opti
         color_mask = np.uint8(colorImg * prepared_mask + zeros * (1 - prepared_mask))
         weightedImage = cv2.addWeighted(color_mask, dp.mask_opacity, image, dp.original_opacity, 0)
 
-        # completedImage = Image.fromarray(colorImg)
         completedImage = Image.fromarray(weightedImage)
         
-        # completedImage = completedImage.resize((600,800),Image.ANTIALIAS)
         image_array.append(completedImage)
 
-    # create gif with array of images 
-    image_array[0].save(gif_file,save_all=True, append_images=image_array[1:], optimize=True, duration=500, loop=0)
-    filesize = os.path.getsize(gif_file)
+
+    animated_gif = BytesIO()
+    image_array[0].save(animated_gif,format='GIF', save_all=True, append_images=image_array[1:], optimize=True, duration=500, loop=0)
+ 
+    animated_gif.seek(0,2)
+    filesize = animated_gif.tell()
+
+    animated_gif.seek(0)
+
     
     # resize large gif to allow them to be sent over discord
-    while filesize > 8000000 and dp.size_check is True:
-        print(f'current filesize is {filesize}, reducing')
-        gif = Image.open(gif_file)
-        resize_to = (gif.size[0] //1.33, gif.size[1] // 1.33)
-        gif.close()
-        gif_resize.resize_gif(gif_file,resize_to=resize_to)
-        filesize = os.path.getsize(gif_file)
+    # while filesize > dp.MAX_DISCORD_FILE_SIZE and dp.size_check is True:
+    # #     print(f'current filesize is {filesize}, reducing')
+    #     gif = Image.open(animated_gif)
+    #     resize_to = (gif.size[0] //1.33, gif.size[1] // 1.33)
+    #     # gif.close()
+    #     gif_resize.resize_gif(animated_gif,resize_to=resize_to)
+    #     animated_gif.seek(0,2)
+    #     filesize = animated_gif.tell()
+    #     print ('new GIF image size kb= ', filesize//1000)
+    #     # Optional: write contents to file
+    #     animated_gif.seek(0)
+    #     filesize = os.path.getsize(gif_file)
 
-    print(f'final filesize {filesize}, saved')
+    return(animated_gif)
+    # print(f'final filesize {filesize}, saved')
 
-def main(url=None, single_file=None, output_folder=None, options=None):
+def get_image_size(img,imgtype:str=None):
+    # cvim_save = Image.fromarray(img)
+    onefile = BytesIO()
+    img.save(onefile,format='GIF', optimize=True, duration=500, loop=0)
+    onefile.seek(0,2)
+    print (imgtype,'image size kb= ', onefile.tell()//1000)
+    onefile.seek(0)   
+
+
+def main(url=None, single_file=None, output_folder=None, input_stream=None, options=None):
 
     # set up all the input args 
     if url is not None:
@@ -327,17 +341,26 @@ def main(url=None, single_file=None, output_folder=None, options=None):
         clusterLevel = dp.clusterLevel
         # clusterLevel = 0
 
+    if input_stream is not None:
+        input_stream.seek(0,2)
+        image_size = input_stream.tell()
+        input_stream.seek(0)
+        cvim = cv2.imdecode(np.frombuffer(input_stream.getbuffer(), np.uint8), cv2.IMREAD_COLOR)
 
-    #if input_stream is not None:
-        # cv2.imdecode(input_stream)
+        predicted_image_size = image_size * 5 * int(options['num_colors'])
+        if predicted_image_size > dp.MAX_DISCORD_FILE_SIZE:
+            estimated_resize = predicted_image_size/dp.MAX_DISCORD_FILE_SIZE
+            normalized_resize = math.sqrt(estimated_resize)
+            cvim = cv2.resize(cvim, (int(cvim.shape[1]//normalized_resize),int(cvim.shape[0]//normalized_resize)))
+            
+        #get facial feautures, namely hair color
+        faces = anime_face_features(input_stream=input_stream)
 
-
-    #open the file
-    cvim = cv2.imread(image_file)
-    original = cvim.copy()
-
-    #get facial feautures, namely hair color
-    faces = anime_face_features(image_file)
+    #open the file (deprecate this)
+    else:
+        cvim = cv2.imread(image_file)
+        #get facial feautures, namely hair color
+        faces = anime_face_features(image_file)
 
     if not faces:
         #no faces identified, time to guess
@@ -359,7 +382,7 @@ def main(url=None, single_file=None, output_folder=None, options=None):
     mask = noise_reduction(mask)
 
     #trace around the largest areas
-    mask = contouring(original,mask)
+    mask = contouring(cvim,mask)
 
     # add blur to feather/smooth edges
     mask = cv2.GaussianBlur(mask,(21,21),5)
@@ -377,9 +400,9 @@ def main(url=None, single_file=None, output_folder=None, options=None):
     cvim_rgb = cv2.cvtColor(cvim, cv2.COLOR_BGR2RGB)
 
     #execute rainbow function
-    image_to_rainbow_gif(cvim_rgb,mask,output,options=options)
+    animated_gif = image_to_rainbow_gif(cvim_rgb,mask,output,options=options)
 
-    return(output)
+    return(animated_gif)
 
 
 if __name__ == '__main__':

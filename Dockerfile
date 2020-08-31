@@ -1,5 +1,4 @@
 FROM python:3.6-slim
-#FROM pytorch/pytorch
 
 WORKDIR /project
 

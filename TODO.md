@@ -23,10 +23,10 @@
    - [x] help commands
    - [ ] manual
    - [ ] readme
- - [ ] **pass everything as an object, no need to write to disk
- - [ ] **speed up by resizing large images to avoid resizing the full gif
+ - [x] pass everything as an object, no need to write to disk
+ - [x] speed up by resizing large images to avoid resizing the full gif
  - [ ] allow multiple prompts to be addressed at once
- - [ ] regex bug?
  - [ ] squash all commits, keep master clean, dev on dev branch
  - [ ] stable docker on aws
  - [x] pass token by env variable
+ - [x] entitiy too large error handling

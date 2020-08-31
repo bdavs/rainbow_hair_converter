@@ -59,7 +59,7 @@ async def random(ctx, *args):
     else:
         newargs = randWaifu
     await url(ctx,*args,randWaifu)
-    await ctx.send(f"random waifu number {randNum} from https://www.thiswaifudoesnotexist.net")
+    await ctx.send(f"random waifu number {randNum} from https://www.thiswaifudoesnotexist.net\n{randWaifu}")
 
 @bot.command()
 async def test(ctx, *args):
@@ -69,19 +69,25 @@ async def test(ctx, *args):
 
     @bot.command()
     async def test(ctx, *args):
-        await ctx.send(args[-1])
-
+        if args:
+            await ctx.send(' '.join(args))
+        else: 
+            await ctx.send("test")
     """
-    await ctx.send(args[-1])
+    if args:
+        await ctx.send(' '.join(args))
+    else: 
+        await ctx.send("test")
 
+
+default_options={'gradient':0,'num_colors':16,'fill_level':4}
 
 url_regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 def process_args(args):
     image_url=None
-    options={'gradient':0,'num_colors':16,'fill_level':4}
+    options=default_options
     for arg in args:
         if re.match(url_regex,arg) is not None:
-            print(f"found a url, {arg}")
             image_url = arg
         elif arg == 'gradient':
             options['gradient']=1
@@ -93,7 +99,7 @@ def process_args(args):
             options['num_colors']=int(arg[1:])
         else:
             options['gradient']=0
-    print(options)
+    # print(options)
     return options,image_url
 
 @bot.command(aliases=['link'])
@@ -124,7 +130,7 @@ async def url(ctx, *args):
         ctx.send('No url provided')
         return
 
-    print(args)
+    # print(args)
     options,image_url = process_args(args)
 
     if image_url is None:
@@ -133,7 +139,7 @@ async def url(ctx, *args):
     if len(args) > 1:
         await send_image(ctx, image_url, options)
     else:
-        await send_image(ctx, image_url)
+        await send_image(ctx, image_url,default_options)
         
 
 @bot.command()
@@ -170,7 +176,7 @@ async def pic(ctx, *args):
             options,_ = process_args(args)
             await send_image(ctx, image_url, options)
         else:
-            await send_image(ctx, image_url)
+            await send_image(ctx, image_url,default_options)
     except IndexError:
         await ctx.send('No image provided')
     except:
@@ -179,17 +185,21 @@ async def pic(ctx, *args):
         raise
 
 async def send_image(ctx, image_url, options=None):
-    bot_message = await ctx.send('Beep. Boop. Processing your image...')
+    bot_message = await ctx.send(f'Beep. Boop. Processing image for {ctx.message.author.name}...')
     try:
-        await get_src_image(ctx,image_url)
-        make_gif.main(single_file=INPUT_FILE,options=options)
+        data = await get_src_image(ctx,image_url)
+        animated_gif = make_gif.main(input_stream=data,options=options)
             # url=image_url)
-        await ctx.send(file=discord.File(IMAGE_FILE))
+        # await ctx.send(file=discord.File(IMAGE_FILE))
+        await ctx.send(file=discord.File(animated_gif, 'rainbow_waifu.gif'))
     except aiohttp.client_exceptions.InvalidURL:
         await ctx.send('Couldn\'t get that url or there was no image at that address')
         print(f"url error {image_url}")
+    except discord.errors.HTTPException:
+        await ctx.send('Sorry, the resulting GIF was too large. Please try uploading a smaller image')
+        print(f"gif too big")
     except:
-        await ctx.send('Uh oh, something went wrong. go yell at @bdavs')
+        await ctx.send('Uh oh, something went wrong. Go yell at @bdavs')
         print("Unexpected error:", sys.exc_info()[0])
         raise
     finally:
@@ -203,11 +213,12 @@ async def get_src_image(ctx,my_url):
             if resp.status != 200:
                 return await ctx.send('Could not download file...')
             data = io.BytesIO(await resp.read())
-            # io.FileIO(INPUT_FILE,'w').write(data)
-            with open(INPUT_FILE,'wb') as f:
-                f.write(data.getbuffer())
-            # return data
-            # await channel.send(file=discord.File(data, 'cool_image.png'))
+
+            # with open(INPUT_FILE,'wb') as f:
+                # f.write(data.getbuffer())
+            # return data.getbuffer()
+            return data
+
 
   
 @bot.event

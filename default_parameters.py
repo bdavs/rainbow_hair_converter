@@ -12,5 +12,6 @@ clusterLevel = 0
 size_check = True
 duration = 100
 gradient = False
+MAX_DISCORD_FILE_SIZE = 8000000
 
 dev = False
