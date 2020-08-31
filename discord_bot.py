@@ -3,8 +3,11 @@ try:
     from tokenfile import TOKEN
 except ModuleNotFoundError:
     #get discord token from environment
-    import os
-    TOKEN = os.environ['TOKEN']
+    try:
+        import os
+        TOKEN = os.environ['TOKEN']
+    except KeyError:
+        print("could not get token")
 from discord.ext import commands
 import random as rand
 import io
