@@ -81,10 +81,17 @@ async def test(ctx, *args):
         await ctx.send(' '.join(args))
     else: 
         await ctx.send("test")
-
+    
+@bot.command(aliases=['inv'])
+async def invite(ctx, *args):
+    """Generate an invite link to add this bot to another server
+    Requires user to have Manage Server permissions on the target server
+    """
+    perms = discord.Permissions(permissions=1074063424)
+    invite = discord.utils.oauth_url(bot.user.id,permissions=perms)
+    await ctx.send(invite)
 
 default_options={'gradient':0,'num_colors':16,'fill_level':4}
-
 url_regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 def process_args(args):
     image_url=None
