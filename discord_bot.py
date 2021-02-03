@@ -12,12 +12,15 @@ from discord.ext import commands
 import random as rand
 import io
 import aiohttp
+import asyncio
+import threading
 import discord
 import re
 import logging
 import sys
 
 import make_gif
+import reddit_integration
 
 #logging setup
 logger = logging.getLogger('discord')
@@ -40,6 +43,7 @@ description =   """This bot can turn your waifu rainbow.
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'), description=description, case_insensitive=True)
 # bot = commands.Bot(command_prefix='$')
+
 
 @bot.command(description="get a random waifu")
 async def random(ctx, *args):
@@ -77,10 +81,20 @@ async def test(ctx, *args):
         else: 
             await ctx.send("test")
     """
-    if args:
-        await ctx.send(' '.join(args))
-    else: 
-        await ctx.send("test")
+
+
+    loop = asyncio.new_event_loop()
+    loop.create_task(await reddit_integration.get_requests(ctx))
+    threading.Thread(target=loop.run_forever())
+
+    # em = reddit_integration.get_requests()
+    # em_msg = await ctx.send(embed=em)
+    # await ctx.send(reddit_integration.get_requests())
+
+    # if args:
+    #     await ctx.send(' '.join(args))
+    # else: 
+    #     await ctx.send("test")
     
 @bot.command(aliases=['inv'])
 async def invite(ctx, *args):
@@ -235,5 +249,6 @@ async def get_src_image(ctx,my_url):
 async def on_ready():
     await bot.change_presence(activity=discord.Game(name='Dreaming of polychromatic sheep | $help'))
     print(f'{bot.user.name} has connected to Discord!')
+
 
 bot.run(TOKEN)
