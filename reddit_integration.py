@@ -3,7 +3,10 @@ import time
 import datetime
 import discord
 from secret_reddit_info import reddit
+import queue
 
+q = queue.Queue()
+used_list = []
 
 subreddit = reddit.subreddit("Rainbow_Waifus") 
 reqpostSTR = "l8lpko" #monitored post              # jvkj0j l8lpko
@@ -11,30 +14,44 @@ reqpost = reddit.submission(reqpostSTR)
 maxAge = 30000000 #oldest comment age in seconds to prevent 
 
 
-async def get_requests(ctx):
-
-    for comment in subreddit.stream.comments():
-
+def put_requests():
+    all_comments = reqpost.comments.list()
+    for comment in all_comments:
         if((comment.parent_id=="t3_" + reqpostSTR) and (maxAge > time.time() - comment.created_utc)):
-            ts = datetime.datetime.fromtimestamp(comment.created_utc).strftime('%Y-%m-%d %H:%M:%S %Z')
+            if(comment.id not in used_list):
+                used_list.append(comment.id)
 
-            em = discord.Embed(colour=0xAA0000)
-            em.set_author(name=str(comment.author), icon_url=str(comment.author.icon_img))
-            em.add_field(name='Request:',
-                        value=comment.body, inline=False)
-            em.add_field(name='Comment Link:',
-                        value="http://reddit.com" + comment.permalink, inline=False)
-            em.set_footer(text="posted at {} ".format(ts))
-                        # icon_url="https://cdn.discordapp.com/emojis/554730061463289857.gif")
+                ts = datetime.datetime.fromtimestamp(comment.created_utc).strftime('%Y-%m-%d %H:%M:%S %Z')
 
-            # text = ""
-            # text += "Request by: u/" + str(comment.author) +"\n"
-            # text += "comment link: www.reddit.com/comments/" + reqpostSTR + "/Requests/" + str(comment) +"\n"
-            # text += str(comment.body) +"\n"
-            # text += "-----------\n"
-            # return(em)
-            await ctx.send(embed=em)
+                em = discord.Embed(colour=0xAA0000)
+                em.set_author(name=str(comment.author), icon_url=str(comment.author.icon_img))
+                em.add_field(name='Request:',
+                            value=comment.body, inline=False)
+                em.add_field(name='Comment Link:',
+                            value="http://reddit.com" + comment.permalink, inline=False)
+                em.set_footer(text="posted at {} ".format(ts))
+                            # icon_url="https://cdn.discordapp.com/emojis/554730061463289857.gif")
+
+                # text = ""
+                # text += "Request by: u/" + str(comment.author) +"\n"
+                # text += "comment link: www.reddit.com/comments/" + reqpostSTR + "/Requests/" + str(comment) +"\n"
+                # text += str(comment.body) +"\n"
+                # text += "-----------\n"
+                # return(em)
+                # await ctx.send(embed=em)
+                # print("adding comment to queue")
+                q.put(em)
+
+def get_req():
+    try:
+        item = q.get(block=False)
+        q.task_done()
+    except queue.Empty:
+        item = None
+    return(item)
+
 
 
 if __name__ == "__main__":
-    get_requests(None)
+    # get_req()
+    put_requests()

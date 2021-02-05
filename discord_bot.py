@@ -8,7 +8,7 @@ except ModuleNotFoundError:
         TOKEN = os.environ['TOKEN']
     except KeyError:
         print("could not get token")
-from discord.ext import commands
+from discord.ext import commands,tasks
 import random as rand
 import io
 import aiohttp
@@ -68,6 +68,26 @@ async def random(ctx, *args):
     await url(ctx,*args,randWaifu)
     await ctx.send(f"random waifu number {randNum} from https://www.thiswaifudoesnotexist.net\n{randWaifu}")
 
+# @bot.command()
+@tasks.loop(seconds=5.0)
+async def get_req():
+    if channel_to_join is None:
+        return
+
+    reddit_integration.put_requests()
+
+    em = reddit_integration.get_req()
+    if em:
+        await channel_to_join.send(embed=em)
+
+channel_to_join = None
+@bot.command()
+async def init(ctx, *args):
+    global channel_to_join
+    channel_to_join = ctx.channel
+    get_req.start()
+
+
 @bot.command()
 async def test(ctx, *args):
     """This is just used for testing, please ignore
@@ -82,19 +102,10 @@ async def test(ctx, *args):
             await ctx.send("test")
     """
 
-
-    loop = asyncio.new_event_loop()
-    loop.create_task(await reddit_integration.get_requests(ctx))
-    threading.Thread(target=loop.run_forever())
-
-    # em = reddit_integration.get_requests()
-    # em_msg = await ctx.send(embed=em)
-    # await ctx.send(reddit_integration.get_requests())
-
-    # if args:
-    #     await ctx.send(' '.join(args))
-    # else: 
-    #     await ctx.send("test")
+    if args:
+        await ctx.send(' '.join(args))
+    else: 
+        await ctx.send("test")
     
 @bot.command(aliases=['inv'])
 async def invite(ctx, *args):
