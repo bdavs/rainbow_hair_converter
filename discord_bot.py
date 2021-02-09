@@ -1,11 +1,11 @@
 try:
     # get discord token from file
-    from tokenfile import TOKEN
+    from tokenfile import DISCORD_TOKEN
 except ModuleNotFoundError:
     #get discord token from environment
     try:
         import os
-        TOKEN = os.environ['TOKEN']
+        DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
     except KeyError:
         print("could not get token")
 from discord.ext import commands,tasks
@@ -68,19 +68,19 @@ async def random(ctx, *args):
     await url(ctx,*args,randWaifu)
     await ctx.send(f"random waifu number {randNum} from https://www.thiswaifudoesnotexist.net\n{randWaifu}")
 
-# @bot.command()
+
+channel_to_join = None
 @tasks.loop(seconds=5.0)
 async def get_req():
     if channel_to_join is None:
         return
 
-    reddit_integration.put_requests()
+    await reddit_integration.put_requests()
 
-    em = reddit_integration.get_req()
+    em = await reddit_integration.get_req()
     if em:
         await channel_to_join.send(embed=em)
 
-channel_to_join = None
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def requestJoin(ctx, *args):
@@ -267,4 +267,5 @@ async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
 
 
-bot.run(TOKEN)
+bot.run(DISCORD_TOKEN)
+# bot.close()
