@@ -1,23 +1,26 @@
 try:
     # get discord token from file
-    from tokenfile import TOKEN
+    from tokenfile import DISCORD_TOKEN
 except ModuleNotFoundError:
     #get discord token from environment
     try:
         import os
-        TOKEN = os.environ['TOKEN']
+        DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
     except KeyError:
         print("could not get token")
-from discord.ext import commands
+from discord.ext import commands,tasks
 import random as rand
 import io
 import aiohttp
+import asyncio
+import threading
 import discord
 import re
 import logging
 import sys
 
 import make_gif
+import reddit_integration
 
 #logging setup
 logger = logging.getLogger('discord')
@@ -40,6 +43,7 @@ description =   """This bot can turn your waifu rainbow.
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'), description=description, case_insensitive=True)
 # bot = commands.Bot(command_prefix='$')
+
 
 @bot.command(description="get a random waifu")
 async def random(ctx, *args):
@@ -64,6 +68,31 @@ async def random(ctx, *args):
     await url(ctx,*args,randWaifu)
     await ctx.send(f"random waifu number {randNum} from https://www.thiswaifudoesnotexist.net\n{randWaifu}")
 
+
+channel_to_join = None
+@tasks.loop(seconds=5.0)
+async def get_req():
+    if channel_to_join is None:
+        return
+
+    await reddit_integration.put_requests()
+
+    em = await reddit_integration.get_req()
+    if em:
+        await channel_to_join.send(embed=em)
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def requestJoin(ctx, *args):
+    """joins the bot to check for request thread updates (admin only)
+    """
+    global channel_to_join
+    channel_to_join = ctx.channel
+    if not get_req.is_running():
+        get_req.start()
+    await ctx.send("Joined {} channel to send request thread updates".format(channel_to_join))
+
+
 @bot.command()
 async def test(ctx, *args):
     """This is just used for testing, please ignore
@@ -77,6 +106,7 @@ async def test(ctx, *args):
         else: 
             await ctx.send("test")
     """
+
     if args:
         await ctx.send(' '.join(args))
     else: 
@@ -236,4 +266,6 @@ async def on_ready():
     await bot.change_presence(activity=discord.Game(name='Dreaming of polychromatic sheep | $help'))
     print(f'{bot.user.name} has connected to Discord!')
 
-bot.run(TOKEN)
+
+bot.run(DISCORD_TOKEN)
+# bot.close()

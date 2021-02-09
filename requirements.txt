@@ -3,6 +3,8 @@ discord.py
 opencv-python
 pillow 
 requests
+praw
+asyncpraw
 # matplotlib 
 # torch
 # torchvision
