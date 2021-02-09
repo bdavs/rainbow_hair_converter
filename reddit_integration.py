@@ -11,7 +11,7 @@ used_list = []
 subreddit = reddit.subreddit("Rainbow_Waifus") 
 reqpostSTR = "l8lpko" #monitored post              # jvkj0j l8lpko
 reqpost = reddit.submission(reqpostSTR)
-maxAge = 30000000 #oldest comment age in seconds to prevent 
+maxAge = 3600 #oldest comment age in seconds to prevent 
 
 
 def put_requests():
@@ -23,12 +23,11 @@ def put_requests():
 
                 ts = datetime.datetime.fromtimestamp(comment.created_utc).strftime('%Y-%m-%d %H:%M:%S %Z')
 
-                em = discord.Embed(colour=0xAA0000)
+                em = discord.Embed(colour=0x0000AA)
                 em.set_author(name=str(comment.author), icon_url=str(comment.author.icon_img))
                 em.add_field(name='Request:',
                             value=comment.body, inline=False)
-                em.add_field(name='Comment Link:',
-                            value="http://reddit.com" + comment.permalink, inline=False)
+                em.add_field(name='\u200b', value="[Comment Link](http://reddit.com{})".format(comment.permalink))
                 em.set_footer(text="posted at {} ".format(ts))
                             # icon_url="https://cdn.discordapp.com/emojis/554730061463289857.gif")
 

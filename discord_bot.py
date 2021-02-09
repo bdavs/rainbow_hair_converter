@@ -82,10 +82,15 @@ async def get_req():
 
 channel_to_join = None
 @bot.command()
-async def init(ctx, *args):
+@commands.has_permissions(administrator=True)
+async def requestJoin(ctx, *args):
+    """joins the bot to check for request thread updates (admin only)
+    """
     global channel_to_join
     channel_to_join = ctx.channel
-    get_req.start()
+    if not get_req.is_running():
+        get_req.start()
+    await ctx.send("Joined {} channel to send request thread updates".format(channel_to_join))
 
 
 @bot.command()
