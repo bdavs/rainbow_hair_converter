@@ -8,6 +8,8 @@ import cv2
 import numpy as np
 import default_parameters as dp 
 import gif_resize
+import ffmpeg
+
 
 # dp.MAX_DISCORD_FILE_SIZE = 8000000
 
@@ -282,18 +284,65 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,opti
 
         completedImage = Image.fromarray(weightedImage)
         
+        # convert back to rgb
+        completedImage = cv2.cvtColor(np.array(completedImage), cv2.COLOR_BGR2RGB)
         image_array.append(completedImage)
 
 
-    animated_gif = BytesIO()
-    image_array[0].save(animated_gif,format='GIF', save_all=True, append_images=image_array[1:], optimize=True, duration=500, loop=0)
+    # animated_gif = BytesIO()
+    # image_array[0].save(animated_gif,format='GIF', save_all=True, append_images=image_array[1:], optimize=True, duration=500, loop=0)
  
-    animated_gif.seek(0,2)
-    filesize = animated_gif.tell()
+    # animated_gif.seek(0,2)
+    # filesize = animated_gif.tell()
 
-    animated_gif.seek(0)
+    # animated_gif.seek(0)
 
-    
+    # create video file
+    output_vid = '/project/data/output/output2.mp4' 
+    height, width, layers = image.shape
+    video = cv2.VideoWriter(output_vid, cv2.VideoWriter_fourcc(*'mp4v'), 6, (width,height))
+
+    # add images to video
+    for image_a in range(len(image_array)):
+        video.write(image_array[image_a])
+
+    # clean up
+    cv2.destroyAllWindows()
+    video.release()
+
+    output_size = os.path.getsize(output_vid)//1000
+    # print ('file image size kb= ', output_size)
+
+    # output_buf.seek(0,2)
+    # output_size = output_buf.tell()//1000
+    # print ('byteio image size kb= ', output_size)
+    # output_buf.seek(0) 
+
+    # max image upload for bots is 8GB
+    target_size = 8000
+    if output_size > target_size:
+    # image too large for discord
+        new_output_vid = '/project/data/output/output3.mp4' 
+
+        compress_video(output_vid,new_output_vid,target_size)
+
+        # read from file to bytesio
+        with open(new_output_vid, 'rb') as f:
+            output_buf = BytesIO(f.read())
+
+    else:
+    # image size fine for discord
+        # read from file to bytesio
+        with open(output_vid, 'rb') as f:
+            output_buf = BytesIO(f.read())
+
+    return(output_buf)
+
+    # write to files
+    # with open(gif_file, "wb") as f:
+    #     f.write(output_vid.getbuffer())
+
+
     # resize large gif to allow them to be sent over discord
     # while filesize > dp.MAX_DISCORD_FILE_SIZE and dp.size_check is True:
     # #     print(f'current filesize is {filesize}, reducing')
@@ -308,7 +357,7 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,opti
     #     animated_gif.seek(0)
     #     filesize = os.path.getsize(gif_file)
 
-    return(animated_gif)
+    # return(animated_gif)
     # print(f'final filesize {filesize}, saved')
 
 def get_image_size(img,imgtype:str=None):
@@ -319,6 +368,39 @@ def get_image_size(img,imgtype:str=None):
     print (imgtype,'image size kb= ', onefile.tell()//1000)
     onefile.seek(0)   
 
+def compress_video(video_full_path, output_file_name, target_size):
+    # target size is in kb
+    # Reference: https://en.wikipedia.org/wiki/Bit_rate#Encoding_bit_rate
+    min_audio_bitrate = 32000
+    max_audio_bitrate = 256000
+
+    probe = ffmpeg.probe(video_full_path)
+    # Video duration, in s.
+    duration = float(probe['format']['duration'])
+    # # Audio bitrate, in bps.
+    # audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)['bit_rate'])
+    audio_bitrate = float(min_audio_bitrate)
+    # # Target total bitrate, in bps.
+    target_total_bitrate = (target_size * 1024 * 8) / (1.073741824 * duration)
+
+    # # Target audio bitrate, in bps
+    # if 10 * audio_bitrate > target_total_bitrate:
+    #     audio_bitrate = target_total_bitrate / 10
+    #     if audio_bitrate < min_audio_bitrate < target_total_bitrate:
+    #         audio_bitrate = min_audio_bitrate
+    #     elif audio_bitrate > max_audio_bitrate:
+    #         audio_bitrate = max_audio_bitrate
+    # Target video bitrate, in bps.
+    video_bitrate = target_total_bitrate 
+    # - audio_bitrate
+
+    i = ffmpeg.input(video_full_path)
+    ffmpeg.output(i, '/dev/null' if os.path.exists('/dev/null') else 'NUL',
+                  **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 1, 'f': 'mp4'}
+                  ).overwrite_output() .global_args('-loglevel', 'error').run()
+    ffmpeg.output(i, output_file_name,
+                  **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 2, 'c:a': 'aac', 'b:a': audio_bitrate}
+                  ).overwrite_output() .global_args('-loglevel', 'error').run()
 
 def main(url=None, single_file=None, output_folder=None, input_stream=None, options=None):
 
@@ -347,11 +429,21 @@ def main(url=None, single_file=None, output_folder=None, input_stream=None, opti
         input_stream.seek(0)
         cvim = cv2.imdecode(np.frombuffer(input_stream.getbuffer(), np.uint8), cv2.IMREAD_COLOR)
 
-        predicted_image_size = image_size * 5 * int(options['num_colors'])
-        if predicted_image_size > dp.MAX_DISCORD_FILE_SIZE:
-            estimated_resize = predicted_image_size/dp.MAX_DISCORD_FILE_SIZE
-            normalized_resize = math.sqrt(estimated_resize)
-            cvim = cv2.resize(cvim, (int(cvim.shape[1]//normalized_resize),int(cvim.shape[0]//normalized_resize)))
+
+        # # size management
+        if cvim.shape[1] > 2000:
+            resize_factor = float(cvim.shape[1] / 2000)
+            cvim = cv2.resize(cvim, (int(cvim.shape[1]//resize_factor),int(cvim.shape[0]//resize_factor)))
+        elif cvim.shape[0] > 2000:
+            resize_factor = float(cvim.shape[0] / 2000)
+            cvim = cv2.resize(cvim, (int(cvim.shape[1]//resize_factor),int(cvim.shape[0]//resize_factor)))
+            
+
+        # predicted_image_size = image_size * 5 * int(options['num_colors'])
+        # if predicted_image_size > dp.MAX_DISCORD_FILE_SIZE:
+        #     estimated_resize = predicted_image_size/dp.MAX_DISCORD_FILE_SIZE
+        #     normalized_resize = math.sqrt(estimated_resize)
+        #     cvim = cv2.resize(cvim, (int(cvim.shape[1]//normalized_resize),int(cvim.shape[0]//normalized_resize)))
             
         #get facial feautures, namely hair color
         faces = anime_face_features(input_stream=input_stream)
@@ -407,4 +499,6 @@ def main(url=None, single_file=None, output_folder=None, input_stream=None, opti
 
 if __name__ == '__main__':
     filename = '/project/data/downloads/input.png'
-    main(single_file=filename,output_folder=".")
+    url = 'https://cdn.discordapp.com/attachments/748030642058559510/749078292820262954/kindpng_2748314.png'
+    # main(single_file=filename,output_folder=".")
+    main(url=url)

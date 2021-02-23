@@ -227,11 +227,15 @@ async def pic(ctx, *args):
 async def send_image(ctx, image_url, options=None):
     bot_message = await ctx.send(f'Beep. Boop. Processing image for {ctx.message.author.name}...')
     try:
+        # if image_url.split('.')[-1].lower() not in ['png', 'jpg', 'jpeg']:
+        #     await ctx.send('Couldn\'t get that url or there was no image at that address')
+        #     print(f"url error {image_url}")
+
         data = await get_src_image(ctx,image_url)
         animated_gif = make_gif.main(input_stream=data,options=options)
             # url=image_url)
         # await ctx.send(file=discord.File(IMAGE_FILE))
-        await ctx.send(file=discord.File(animated_gif, 'rainbow_waifu.gif'))
+        await ctx.send(file=discord.File(animated_gif, 'rainbow_waifu.mp4'))
     except aiohttp.client_exceptions.InvalidURL:
         await ctx.send('Couldn\'t get that url or there was no image at that address')
         print(f"url error {image_url}")

@@ -30,3 +30,8 @@
  - [ ] stable docker on aws
  - [x] pass token by env variable
  - [x] entitiy too large error handling
+ - [x] reddit integration
+   - [ ] reddit changable parameters
+ - [ ] update readme
+ - [ ] changable parameters per instance
+ - [ ] turn gifs into videos

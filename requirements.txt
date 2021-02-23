@@ -5,6 +5,7 @@ pillow
 requests
 praw
 asyncpraw
+ffmpeg-python
 # matplotlib 
 # torch
 # torchvision

@@ -5,6 +5,7 @@ WORKDIR /project
 RUN apt update && apt install -y --no-install-recommends\
     libgtk2.0-dev \
     libgl1-mesa-glx \
+    ffmpeg \
      && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
