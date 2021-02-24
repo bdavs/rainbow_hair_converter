@@ -9,3 +9,6 @@ alt_methods/*
 .vscode
 discord.log
 ffmpeg*
+.env
+secret*
+run.sh
