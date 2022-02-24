@@ -233,7 +233,7 @@ def make_gradient_array(img,num_colors):
 
 def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,options=None):
     # take single image and mask and output rainbow gif
-    image_array = []
+    image_array = np.ndarray()
 
     if options is not None:
         if options['gradient'] >= 1:
@@ -289,28 +289,30 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,opti
         image_array.append(completedImage)
 
 
-    # animated_gif = BytesIO()
-    # image_array[0].save(animated_gif,format='GIF', save_all=True, append_images=image_array[1:], optimize=True, duration=500, loop=0)
+    animated_gif = BytesIO()
+    image_array[0].save(animated_gif,format='GIF', save_all=True, append_images=image_array[1:], optimize=True, duration=500, loop=0)
  
-    # animated_gif.seek(0,2)
-    # filesize = animated_gif.tell()
+    animated_gif.seek(0,2)
+    filesize = animated_gif.tell()
 
-    # animated_gif.seek(0)
+    animated_gif.seek(0)
 
-    # create video file
-    output_vid = '/project/data/output/output2.mp4' 
-    height, width, layers = image.shape
-    video = cv2.VideoWriter(output_vid, cv2.VideoWriter_fourcc(*'mp4v'), 6, (width,height))
+    # # create video file
+    # output_vid = '/project/data/output/output2.mp4' 
+    # height, width, layers = image.shape
+    # video = cv2.VideoWriter(output_vid, cv2.VideoWriter_fourcc(*'mp4v'), 6, (width,height))
 
-    # add images to video
-    for image_a in range(len(image_array)):
-        video.write(image_array[image_a])
+    # # add images to video
+    # for image_a in range(len(image_array)):
+    #     video.write(image_array[image_a])
 
-    # clean up
-    cv2.destroyAllWindows()
-    video.release()
+    # # clean up
+    # cv2.destroyAllWindows()
+    # video.release()
 
-    output_size = os.path.getsize(output_vid)//1000
+    # output_size = os.path.getsize(output_vid)//1000
+
+
     # print ('file image size kb= ', output_size)
 
     # output_buf.seek(0,2)
@@ -319,24 +321,24 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,opti
     # output_buf.seek(0) 
 
     # max image upload for bots is 8GB
-    target_size = 8000
-    if output_size > target_size:
-    # image too large for discord
-        new_output_vid = '/project/data/output/output3.mp4' 
+    # target_size = 8000
+    # if output_size > target_size:
+    # # image too large for discord
+    #     new_output_vid = '/project/data/output/output3.mp4' 
 
-        compress_video(output_vid,new_output_vid,target_size)
+    #     compress_video(output_vid,new_output_vid,target_size)
 
-        # read from file to bytesio
-        with open(new_output_vid, 'rb') as f:
-            output_buf = BytesIO(f.read())
+    #     # read from file to bytesio
+    #     with open(new_output_vid, 'rb') as f:
+    #         output_buf = BytesIO(f.read())
 
-    else:
-    # image size fine for discord
-        # read from file to bytesio
-        with open(output_vid, 'rb') as f:
-            output_buf = BytesIO(f.read())
+    # else:
+    # # image size fine for discord
+    #     # read from file to bytesio
+    #     with open(output_vid, 'rb') as f:
+    #         output_buf = BytesIO(f.read())
 
-    return(output_buf)
+    # return(output_buf)
 
     # write to files
     # with open(gif_file, "wb") as f:
@@ -357,8 +359,24 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,opti
     #     animated_gif.seek(0)
     #     filesize = os.path.getsize(gif_file)
 
-    # return(animated_gif)
+    return(animated_gif)
     # print(f'final filesize {filesize}, saved')
+
+def maskFromFilePair(image1, image2, margarineForError):
+    img = Image.new('RGB', [image1.width,image1.height], 255)
+    dataNew = img.load()
+    data1=image1.load()
+    data2=image2.load()
+    for x in range(img.size[0]):
+        for y in range(img.size[1]):
+            if abs(data1[x,y][0]-data2[x,y][0])<margarineForError \
+            and abs(data1[x,y][1]-data2[x,y][1])<margarineForError \
+            and abs(data1[x,y][2]-data2[x,y][2])<margarineForError:
+                dataNew[x,y] = (0,0,0)
+            else:
+                dataNew[x,y] = (255,255,255)
+    img = cv2.cvtColor(np.array(img), cv2.cv2.COLOR_RGB2GRAY)     
+    return img
 
 def get_image_size(img,imgtype:str=None):
     # cvim_save = Image.fromarray(img)
@@ -401,6 +419,51 @@ def compress_video(video_full_path, output_file_name, target_size):
     ffmpeg.output(i, output_file_name,
                   **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 2, 'c:a': 'aac', 'b:a': audio_bitrate}
                   ).overwrite_output() .global_args('-loglevel', 'error').run()
+
+def main_dual(input_stream_image=None,input_stream_mask=None,options=None):
+    if input_stream_image is not None and input_stream_mask is not None:
+        # get mask
+        cvim_mask = maskFromFilePair(Image.open(input_stream_image),Image.open(input_stream_mask), 16)
+
+        # image section
+        input_stream_image.seek(0,2)
+        image_size = input_stream_image.tell()
+        input_stream_image.seek(0)
+        cvim = cv2.imdecode(np.frombuffer(input_stream_image.getbuffer(), np.uint8), cv2.IMREAD_COLOR)
+
+        # # mask section
+        # input_stream_mask.seek(0,2)
+        # mask_size = input_stream_mask.tell()
+        # input_stream_mask.seek(0)
+        # cvim_mask = cv2.imdecode(np.frombuffer(input_stream_mask.getbuffer(), np.uint8), cv2.IMREAD_COLOR)
+
+        # sanity check
+        if cvim.shape != cvim_mask.shape:
+            # not the same size, quit
+            return
+
+        # # size management
+        if cvim.shape[1] > 2000:
+            resize_factor = float(cvim.shape[1] / 2000)
+            cvim = cv2.resize(cvim, (int(cvim.shape[1]//resize_factor),int(cvim.shape[0]//resize_factor)))
+            cvim_mask = cv2.resize(cvim_mask, (int(cvim.shape[1]//resize_factor),int(cvim.shape[0]//resize_factor)))
+        if cvim.shape[0] > 2000:
+            resize_factor = float(cvim.shape[0] / 2000)
+            cvim = cv2.resize(cvim, (int(cvim.shape[1]//resize_factor),int(cvim.shape[0]//resize_factor)))
+            cvim_mask = cv2.resize(cvim_mask, (int(cvim.shape[1]//resize_factor),int(cvim.shape[0]//resize_factor)))
+    else:
+        return
+
+
+    # convert to rgb
+    cvim_rgb = cv2.cvtColor(cvim, cv2.COLOR_BGR2RGB)
+
+    output = '/project/data/output/output.gif'
+    
+    #execute rainbow function
+    animated_gif = image_to_rainbow_gif(cvim_rgb,cvim_mask,output,options=options)
+
+    return(animated_gif)
 
 def main(url=None, single_file=None, output_folder=None, input_stream=None, options=None):
 

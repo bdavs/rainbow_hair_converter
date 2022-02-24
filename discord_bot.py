@@ -183,6 +183,53 @@ async def url(ctx, *args):
         
 
 @bot.command()
+async def diff_pic(ctx, *args):
+    """Get your waifu rainbowed by upload
+    To use, upload your waifu's pic with the comment \"$pic\" and any other parameters
+
+    The following are all valid args:
+        gradient - apply a gradient rainbow instead of a solid one
+        solid - (default) apply a solid color effect
+        f# - fill level - any number from 0-9; (default: 4)
+            increase this if not enough of the hair is caught
+            decrease this if too much that is not hair is caught
+        c# - colors used - number of colors the gif will transition between (default: 16)
+            increasing this can slow down the conversion process and lower the gif's resolution
+
+        examples
+            $pic 
+                basic example, all defaults
+            $pic f7 c8 gradient 
+                f7 - I want more hair filled
+                c8 - switch between 8 colors
+                gradient - I want a gradient rainbow
+            $pic solid c10 f3 
+                solid - I want a solid rainbow
+                f3 - some of the face is filled, fill less
+                c10 - switch between 10 colors
+    """
+    try:
+        attachment_string1 = ctx.message.attachments[0]
+        # x = re.search("url=\'(.+)\'", str(attachment_string1))
+        # image_url1 = x.groups()[0]
+        image_url1=attachment_string1.url
+        attachment_string2 = ctx.message.attachments[1]
+        # x = re.search("url=\'(.+)\'", str(attachment_string2))
+        # image_url2 = x.groups()[0]
+        image_url2 = attachment_string2.url
+        if len(args) > 0:
+            options,_ = process_args(args)
+            await send_diff_image(ctx, image_url1, image_url2, options)
+        else:
+            await send_diff_image(ctx, image_url1, image_url2, default_options)
+    except IndexError:
+        await ctx.send('No image provided or only 1 image provided, please provide 2')
+    except:
+        await ctx.send('Uh oh, something went wrong. go yell at @bdavs')
+        print("Unexpected error:", sys.exc_info()[0])
+        raise
+
+@bot.command()
 async def pic(ctx, *args):
     """Get your waifu rainbowed by upload
     To use, upload your waifu's pic with the comment \"$pic\" and any other parameters
@@ -210,8 +257,10 @@ async def pic(ctx, *args):
     """
     try:
         attachment_string = ctx.message.attachments[0]
-        x = re.search("url=\'(.+)\'", str(attachment_string))
-        image_url = x.groups()[0]
+        # x = re.search("url=\'(.+)\'", str(attachment_string))
+        # image_url = x.groups()[0]
+        image_url=attachment_string.url
+
         if len(args) > 0:
             options,_ = process_args(args)
             await send_image(ctx, image_url, options)
@@ -249,6 +298,32 @@ async def send_image(ctx, image_url, options=None):
     finally:
         await bot_message.delete()
 
+async def send_diff_image(ctx, image_url1, image_url2, options=None):
+    bot_message = await ctx.send(f'Beep. Boop. Processing image for {ctx.message.author.name}...')
+    try:
+        # if image_url.split('.')[-1].lower() not in ['png', 'jpg', 'jpeg']:
+        #     await ctx.send('Couldn\'t get that url or there was no image at that address')
+        #     print(f"url error {image_url}")
+
+        data1 = await get_src_image(ctx,image_url1)
+        data2 = await get_src_image(ctx,image_url2)
+        
+        animated_gif = make_gif.main_dual(input_stream_image=data1, input_stream_mask=data2, options=options)
+            # url=image_url)
+        # await ctx.send(file=discord.File(IMAGE_FILE))
+        await ctx.send(file=discord.File(animated_gif, 'rainbow_waifu.gif'))
+    except aiohttp.client_exceptions.InvalidURL:
+        await ctx.send('Couldn\'t get that url or there was no image at that address')
+        print(f"url error {image_url1} or {image_url2}")
+    except discord.errors.HTTPException:
+        await ctx.send('Sorry, the resulting GIF was too large. Please try uploading a smaller image')
+        print(f"gif too big")
+    except:
+        await ctx.send('Uh oh, something went wrong. Go yell at @bdavs')
+        print("Unexpected error:", sys.exc_info()[0])
+        raise
+    finally:
+        await bot_message.delete()
 
 
 async def get_src_image(ctx,my_url):
