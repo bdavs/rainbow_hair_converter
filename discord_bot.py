@@ -124,11 +124,11 @@ async def invite(ctx, *args):
 default_options={'gradient':0,'num_colors':16,'fill_level':4}
 url_regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 def process_args(args):
-    image_url=None
+    image_url=[]
     options=default_options
     for arg in args:
         if re.match(url_regex,arg) is not None:
-            image_url = arg
+            image_url.append(arg)
         elif arg == 'gradient':
             options['gradient']=1
         elif arg == 'solid':
@@ -140,6 +140,8 @@ def process_args(args):
         else:
             options['gradient']=0
     # print(options)
+    if len(image_url) < 1:
+        image_url = None
     return options,image_url
 
 @bot.command(aliases=['link'])
@@ -181,6 +183,44 @@ async def url(ctx, *args):
     else:
         await send_image(ctx, image_url,default_options)
         
+@bot.command(aliases=['diff_link'])
+async def diff_url(ctx, *args):
+    """Get your waifu rainbowed by url
+    The following are all valid args:
+        gradient - apply a gradient rainbow instead of a solid one
+        solid - (default) apply a solid color effect
+        f# - fill level - any number from 0-9; (default: 4)
+            increase this if not enough of the hair is caught
+            decrease this if too much that is not hair is caught
+        c# - colors used - number of colors the gif will transition between (default: 16)
+            increasing this can slow down the conversion process and lower the gif's resolution
+
+        examples
+            $url https://www.thiswaifudoesnotexist.net/example-12345.jpg
+                basic example, all defaults
+            $url f7 c8 gradient https://www.thiswaifudoesnotexist.net/example-12345.jpg
+                f7 - I want more hair filled
+                c8 - switch between 8 colors
+                gradient - I want a gradient rainbow
+            $url solid c10 f3 https://www.thiswaifudoesnotexist.net/example-12345.jpg
+                solid - I want a solid rainbow
+                f3 - some of the face is filled, fill less
+                c10 - switch between 10 colors
+    """
+    if len(args) == 0:
+        ctx.send('No url provided')
+        return
+
+    # print(args)
+    options,image_url = process_args(args)
+
+    if image_url is None:
+        await ctx.send('No url provided')
+        return
+    if len(args) > 1:
+        await send_diff_image(ctx, image_url[0], image_url[1], options)
+    else:
+        await send_diff_image(ctx, image_url[0], image_url[1], default_options)
 
 @bot.command()
 async def diff_pic(ctx, *args):
@@ -280,14 +320,14 @@ async def send_image(ctx, image_url, options=None):
         #     await ctx.send('Couldn\'t get that url or there was no image at that address')
         #     print(f"url error {image_url}")
 
-        data = await get_src_image(ctx,image_url)
+        data = await get_src_image(ctx,image_url[0])
         animated_gif = make_gif.main(input_stream=data,options=options)
             # url=image_url)
         # await ctx.send(file=discord.File(IMAGE_FILE))
         await ctx.send(file=discord.File(animated_gif, 'rainbow_waifu.mp4'))
     except aiohttp.client_exceptions.InvalidURL:
         await ctx.send('Couldn\'t get that url or there was no image at that address')
-        print(f"url error {image_url}")
+        print(f"url error {image_url[0]}")
     except discord.errors.HTTPException:
         await ctx.send('Sorry, the resulting GIF was too large. Please try uploading a smaller image')
         print(f"gif too big")
@@ -311,7 +351,7 @@ async def send_diff_image(ctx, image_url1, image_url2, options=None):
         animated_gif = make_gif.main_dual(input_stream_image=data1, input_stream_mask=data2, options=options)
             # url=image_url)
         # await ctx.send(file=discord.File(IMAGE_FILE))
-        await ctx.send(file=discord.File(animated_gif, 'rainbow_waifu.gif'))
+        await ctx.send(file=discord.File(animated_gif, 'rainbow_waifu.mp4'))
     except aiohttp.client_exceptions.InvalidURL:
         await ctx.send('Couldn\'t get that url or there was no image at that address')
         print(f"url error {image_url1} or {image_url2}")
