@@ -82,7 +82,7 @@ async def get_req():
         await channel_to_join.send(embed=em)
 
 @bot.command()
-@commands.has_permissions(administrator=True)
+@commands.has_permissions(administrator=True, hidden=True)
 async def requestJoin(ctx, *args):
     """joins the bot to check for request thread updates (admin only)
     """
@@ -94,7 +94,7 @@ async def requestJoin(ctx, *args):
 
 
 @bot.command()
-async def test(ctx, *args):
+async def test(ctx, *args,hidden=True):
     """This is just used for testing, please ignore
     seriously, it doesn't do anything cool
     here is all the code for this function:
@@ -154,7 +154,7 @@ async def url(ctx, *args):
             increase this if not enough of the hair is caught
             decrease this if too much that is not hair is caught
         c# - colors used - number of colors the gif will transition between (default: 16)
-            increasing this can slow down the conversion process and lower the gif's resolution
+            increasing this can slow down the conversion process
 
         examples
             $url https://www.thiswaifudoesnotexist.net/example-12345.jpg
@@ -183,28 +183,25 @@ async def url(ctx, *args):
     else:
         await send_image(ctx, image_url,default_options)
         
-@bot.command(aliases=['diff_link'])
-async def diff_url(ctx, *args):
-    """Get your waifu rainbowed by url
+@bot.command()
+async def maskurl(ctx, *args):
+    """You color in what you want rainbowed, I'll do the rest (via url)
+    use a pair of urls, first is the original image, second is the same image with the hair (or whatever) colored in
     The following are all valid args:
         gradient - apply a gradient rainbow instead of a solid one
         solid - (default) apply a solid color effect
-        f# - fill level - any number from 0-9; (default: 4)
-            increase this if not enough of the hair is caught
-            decrease this if too much that is not hair is caught
         c# - colors used - number of colors the gif will transition between (default: 16)
-            increasing this can slow down the conversion process and lower the gif's resolution
+            increasing this can slow down the conversion process
 
         examples
-            $url https://www.thiswaifudoesnotexist.net/example-12345.jpg
+            $maskurl https://www.thiswaifudoesnotexist.net/example-12345.jpg https://www.thiswaifudoesnotexist.net/example-12345-masked-edit.jpg
                 basic example, all defaults
-            $url f7 c8 gradient https://www.thiswaifudoesnotexist.net/example-12345.jpg
+            $maskurl c-50 gradient https://www.thiswaifudoesnotexist.net/example-12345.jpg https://www.thiswaifudoesnotexist.net/example-12345-masked-edit.jpg
                 f7 - I want more hair filled
-                c8 - switch between 8 colors
+                c-50 - switch between 50 colors and reverse direction
                 gradient - I want a gradient rainbow
-            $url solid c10 f3 https://www.thiswaifudoesnotexist.net/example-12345.jpg
+            $maskurl c10 solid https://www.thiswaifudoesnotexist.net/example-12345.jpg https://www.thiswaifudoesnotexist.net/example-12345-masked-edit.jpg
                 solid - I want a solid rainbow
-                f3 - some of the face is filled, fill less
                 c10 - switch between 10 colors
     """
     if len(args) == 0:
@@ -223,39 +220,30 @@ async def diff_url(ctx, *args):
         await send_diff_image(ctx, image_url[0], image_url[1], default_options)
 
 @bot.command()
-async def diff_pic(ctx, *args):
-    """Get your waifu rainbowed by upload
-    To use, upload your waifu's pic with the comment \"$pic\" and any other parameters
+async def maskpic(ctx, *args):
+    """You color in what you want rainbowed, I'll do the rest (via picture upload)
+    To use, upload your waifu's pic  and what you want rainbowed with the comment \"$maskpic\" and any other parameters
 
     The following are all valid args:
         gradient - apply a gradient rainbow instead of a solid one
         solid - (default) apply a solid color effect
-        f# - fill level - any number from 0-9; (default: 4)
-            increase this if not enough of the hair is caught
-            decrease this if too much that is not hair is caught
         c# - colors used - number of colors the gif will transition between (default: 16)
             increasing this can slow down the conversion process and lower the gif's resolution
 
         examples
             $pic 
                 basic example, all defaults
-            $pic f7 c8 gradient 
-                f7 - I want more hair filled
-                c8 - switch between 8 colors
+            $pic c-50 gradient 
+                c-50 - switch between 50 colors and reverse direction
                 gradient - I want a gradient rainbow
-            $pic solid c10 f3 
+            $pic solid c10
                 solid - I want a solid rainbow
-                f3 - some of the face is filled, fill less
                 c10 - switch between 10 colors
     """
     try:
         attachment_string1 = ctx.message.attachments[0]
-        # x = re.search("url=\'(.+)\'", str(attachment_string1))
-        # image_url1 = x.groups()[0]
         image_url1=attachment_string1.url
         attachment_string2 = ctx.message.attachments[1]
-        # x = re.search("url=\'(.+)\'", str(attachment_string2))
-        # image_url2 = x.groups()[0]
         image_url2 = attachment_string2.url
         if len(args) > 0:
             options,_ = process_args(args)

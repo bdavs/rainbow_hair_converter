@@ -162,9 +162,9 @@ def color_mask(color,img,options):
 
     return(mask)
 
-def add_blur(img,blur_amount=6):
+def add_blur(img,blur_amount=3):
+    # img = cv2.GaussianBlur(img, (blur_amount,blur_amount),1)
     img = cv2.blur(img, (blur_amount,blur_amount))
-    # img = cv2.GaussianBlur(img, (blur_amount,blur_amount),4)
     return img
 
 def noise_reduction(img):
@@ -275,9 +275,17 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,opti
     zeros = np.zeros(image.shape, image.dtype)
     prepared_mask = prepared_mask / 255
 
+    #gray out image area under the mask
+    inv_mask = cv2.bitwise_not(binarymask)
+    image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    image_gray = cv2.cvtColor(image_gray,cv2.COLOR_GRAY2RGB)
+    image_gray = cv2.bitwise_and(image_gray,image_gray, mask = binarymask)
+    image = cv2.bitwise_and(image,image, mask = inv_mask)
+    image = cv2.bitwise_or(image,image_gray)
+
+
+    # create video
     fourcc = cv2.VideoWriter_fourcc(*'avc1') 
-    # fourcc = cv2.VideoWriter_fourcc(*"mp4v")   
-    # fourcc = cv2.VideoWriter_fourcc(*"h264")   
     video = cv2.VideoWriter("rainbow.mp4",fourcc, 20 ,(image.shape[1], image.shape[0]))
 
 
@@ -295,6 +303,7 @@ def image_to_rainbow_gif(image,binarymask,gif_file,num_colors=dp.num_colors,opti
             colorImg[:,:] = rgb_lut[i]
 
         color_mask = cv2.bitwise_and(colorImg, colorImg, mask=binarymask) 
+
 
         # apply mask to color       
         color_mask = np.uint8(colorImg * prepared_mask + zeros * (1 - prepared_mask))
@@ -350,11 +359,8 @@ def maskFromFilePair(image1, image2, margarineForError):
             else:
                 dataNew[x,y] = (255,255,255)
     img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)   
-    # img = noise_reduction(img)  
-    # img = contouring(img)  
-    # img = clustering(img,6)
-    img = noise_reduction(img)
 
+    img = noise_reduction(img)
     img = add_blur(img)
     return img
 
@@ -480,7 +486,7 @@ def main(url=None, single_file=None, output_folder=None, input_stream=None, opti
     mask = contouring(mask)
 
     # add blur to feather/smooth edges
-    mask = cv2.GaussianBlur(mask,(21,21),5)
+    mask = cv2.GaussianBlur(mask,(7,7),1)
 
     #write everything to files for development
     if dp.dev:
