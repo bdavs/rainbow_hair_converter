@@ -1,10 +1,11 @@
 animeface
 discord.py 
-opencv-python
+# opencv-python
 pillow 
 requests
 praw
 asyncpraw
+ffmpeg-python
 # matplotlib 
 # torch
 # torchvision

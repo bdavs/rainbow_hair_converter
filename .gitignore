@@ -8,3 +8,7 @@ alt_methods/*
 *.gif
 .vscode
 discord.log
+ffmpeg*
+.env
+secret*
+run.sh

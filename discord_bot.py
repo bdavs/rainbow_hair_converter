@@ -82,7 +82,7 @@ async def get_req():
         await channel_to_join.send(embed=em)
 
 @bot.command()
-@commands.has_permissions(administrator=True)
+@commands.has_permissions(administrator=True, hidden=True)
 async def requestJoin(ctx, *args):
     """joins the bot to check for request thread updates (admin only)
     """
@@ -94,7 +94,7 @@ async def requestJoin(ctx, *args):
 
 
 @bot.command()
-async def test(ctx, *args):
+async def test(ctx, *args,hidden=True):
     """This is just used for testing, please ignore
     seriously, it doesn't do anything cool
     here is all the code for this function:
@@ -124,11 +124,11 @@ async def invite(ctx, *args):
 default_options={'gradient':0,'num_colors':16,'fill_level':4}
 url_regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 def process_args(args):
-    image_url=None
+    image_url=[]
     options=default_options
     for arg in args:
         if re.match(url_regex,arg) is not None:
-            image_url = arg
+            image_url.append(arg)
         elif arg == 'gradient':
             options['gradient']=1
         elif arg == 'solid':
@@ -140,6 +140,8 @@ def process_args(args):
         else:
             options['gradient']=0
     # print(options)
+    if len(image_url) < 1:
+        image_url = None
     return options,image_url
 
 @bot.command(aliases=['link'])
@@ -152,7 +154,7 @@ async def url(ctx, *args):
             increase this if not enough of the hair is caught
             decrease this if too much that is not hair is caught
         c# - colors used - number of colors the gif will transition between (default: 16)
-            increasing this can slow down the conversion process and lower the gif's resolution
+            increasing this can slow down the conversion process
 
         examples
             $url https://www.thiswaifudoesnotexist.net/example-12345.jpg
@@ -181,6 +183,79 @@ async def url(ctx, *args):
     else:
         await send_image(ctx, image_url,default_options)
         
+@bot.command()
+async def maskurl(ctx, *args):
+    """You color in what you want rainbowed, I'll do the rest (via url)
+    use a pair of urls, first is the original image, second is the same image with the hair (or whatever) colored in
+    The following are all valid args:
+        gradient - apply a gradient rainbow instead of a solid one
+        solid - (default) apply a solid color effect
+        c# - colors used - number of colors the gif will transition between (default: 16)
+            increasing this can slow down the conversion process
+
+        examples
+            $maskurl https://www.thiswaifudoesnotexist.net/example-12345.jpg https://www.thiswaifudoesnotexist.net/example-12345-masked-edit.jpg
+                basic example, all defaults
+            $maskurl c-50 gradient https://www.thiswaifudoesnotexist.net/example-12345.jpg https://www.thiswaifudoesnotexist.net/example-12345-masked-edit.jpg
+                f7 - I want more hair filled
+                c-50 - switch between 50 colors and reverse direction
+                gradient - I want a gradient rainbow
+            $maskurl c10 solid https://www.thiswaifudoesnotexist.net/example-12345.jpg https://www.thiswaifudoesnotexist.net/example-12345-masked-edit.jpg
+                solid - I want a solid rainbow
+                c10 - switch between 10 colors
+    """
+    if len(args) == 0:
+        ctx.send('No url provided')
+        return
+
+    # print(args)
+    options,image_url = process_args(args)
+
+    if image_url is None:
+        await ctx.send('No url provided')
+        return
+    if len(args) > 1:
+        await send_diff_image(ctx, image_url[0], image_url[1], options)
+    else:
+        await send_diff_image(ctx, image_url[0], image_url[1], default_options)
+
+@bot.command()
+async def maskpic(ctx, *args):
+    """You color in what you want rainbowed, I'll do the rest (via picture upload)
+    To use, upload your waifu's pic  and what you want rainbowed with the comment \"$maskpic\" and any other parameters
+
+    The following are all valid args:
+        gradient - apply a gradient rainbow instead of a solid one
+        solid - (default) apply a solid color effect
+        c# - colors used - number of colors the gif will transition between (default: 16)
+            increasing this can slow down the conversion process and lower the gif's resolution
+
+        examples
+            $pic 
+                basic example, all defaults
+            $pic c-50 gradient 
+                c-50 - switch between 50 colors and reverse direction
+                gradient - I want a gradient rainbow
+            $pic solid c10
+                solid - I want a solid rainbow
+                c10 - switch between 10 colors
+    """
+    try:
+        attachment_string1 = ctx.message.attachments[0]
+        image_url1=attachment_string1.url
+        attachment_string2 = ctx.message.attachments[1]
+        image_url2 = attachment_string2.url
+        if len(args) > 0:
+            options,_ = process_args(args)
+            await send_diff_image(ctx, image_url1, image_url2, options)
+        else:
+            await send_diff_image(ctx, image_url1, image_url2, default_options)
+    except IndexError:
+        await ctx.send('No image provided or only 1 image provided, please provide 2')
+    except:
+        await ctx.send('Uh oh, something went wrong. go yell at @bdavs')
+        print("Unexpected error:", sys.exc_info()[0])
+        raise
 
 @bot.command()
 async def pic(ctx, *args):
@@ -210,8 +285,10 @@ async def pic(ctx, *args):
     """
     try:
         attachment_string = ctx.message.attachments[0]
-        x = re.search("url=\'(.+)\'", str(attachment_string))
-        image_url = x.groups()[0]
+        # x = re.search("url=\'(.+)\'", str(attachment_string))
+        # image_url = x.groups()[0]
+        image_url=attachment_string.url
+
         if len(args) > 0:
             options,_ = process_args(args)
             await send_image(ctx, image_url, options)
@@ -227,14 +304,18 @@ async def pic(ctx, *args):
 async def send_image(ctx, image_url, options=None):
     bot_message = await ctx.send(f'Beep. Boop. Processing image for {ctx.message.author.name}...')
     try:
-        data = await get_src_image(ctx,image_url)
+        # if image_url.split('.')[-1].lower() not in ['png', 'jpg', 'jpeg']:
+        #     await ctx.send('Couldn\'t get that url or there was no image at that address')
+        #     print(f"url error {image_url}")
+
+        data = await get_src_image(ctx,image_url[0])
         animated_gif = make_gif.main(input_stream=data,options=options)
             # url=image_url)
         # await ctx.send(file=discord.File(IMAGE_FILE))
-        await ctx.send(file=discord.File(animated_gif, 'rainbow_waifu.gif'))
+        await ctx.send(file=discord.File(animated_gif, 'rainbow_waifu.mp4'))
     except aiohttp.client_exceptions.InvalidURL:
         await ctx.send('Couldn\'t get that url or there was no image at that address')
-        print(f"url error {image_url}")
+        print(f"url error {image_url[0]}")
     except discord.errors.HTTPException:
         await ctx.send('Sorry, the resulting GIF was too large. Please try uploading a smaller image')
         print(f"gif too big")
@@ -245,6 +326,32 @@ async def send_image(ctx, image_url, options=None):
     finally:
         await bot_message.delete()
 
+async def send_diff_image(ctx, image_url1, image_url2, options=None):
+    bot_message = await ctx.send(f'Beep. Boop. Processing image for {ctx.message.author.name}...')
+    try:
+        # if image_url.split('.')[-1].lower() not in ['png', 'jpg', 'jpeg']:
+        #     await ctx.send('Couldn\'t get that url or there was no image at that address')
+        #     print(f"url error {image_url}")
+
+        data1 = await get_src_image(ctx,image_url1)
+        data2 = await get_src_image(ctx,image_url2)
+        
+        animated_gif = make_gif.main_dual(input_stream_image=data1, input_stream_mask=data2, options=options)
+            # url=image_url)
+        # await ctx.send(file=discord.File(IMAGE_FILE))
+        await ctx.send(file=discord.File(animated_gif, 'rainbow_waifu.mp4'))
+    except aiohttp.client_exceptions.InvalidURL:
+        await ctx.send('Couldn\'t get that url or there was no image at that address')
+        print(f"url error {image_url1} or {image_url2}")
+    except discord.errors.HTTPException:
+        await ctx.send('Sorry, the resulting GIF was too large. Please try uploading a smaller image')
+        print(f"gif too big")
+    except:
+        await ctx.send('Uh oh, something went wrong. Go yell at @bdavs')
+        print("Unexpected error:", sys.exc_info()[0])
+        raise
+    finally:
+        await bot_message.delete()
 
 
 async def get_src_image(ctx,my_url):

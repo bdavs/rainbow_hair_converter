@@ -4,7 +4,17 @@ import datetime
 import discord
 # from secret_reddit_info import reddit
 import queue
-reddit = asyncpraw.Reddit()
+try:
+    # get discord token from file
+    from secret_reddit_info import reddit
+except ModuleNotFoundError:
+    #get discord token from environment
+    # try:
+    #     import os
+    #     DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
+    # except KeyError:
+    #     print("could not get token")
+    reddit = asyncpraw.Reddit()
 
 q = queue.Queue()
 used_list = []
